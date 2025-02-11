@@ -13,6 +13,10 @@ Jurisdictions are used to create <GlossaryTooltip term="Durable Object">Durable 
 
 Workers may still access Durable Objects constrained to a jurisdiction from anywhere in the world. The jurisdiction constraint only controls where the Durable Object itself runs and persists data. Consider using [Regional Services](/data-localization/regional-services/) to control the regions from which Cloudflare responds to requests.
 
+:::warning
+Currently, SQLite-backed Durable Objects does not support FedRAMP jurisdiction.
+:::
+
 :::note[Logging]
 
 A [`DurableObjectId`](/durable-objects/api/id) will be logged outside of the specified jurisdiction for billing and debugging purposes.
