@@ -10,8 +10,6 @@ head:
 
 import { Render, PackageManagers } from "~/components";
 
-# Send records from a Worker
-
 You can send records to your Pipeline directly from a [Cloudflare Worker](/workers/). To do so, you need to:
 1. Create a Worker
 2. Create a Pipeline
@@ -23,7 +21,7 @@ You can send records to your Pipeline directly from a [Cloudflare Worker](/worke
 ## 1. Create a Worker
 Create a Cloudflare Worker if you don't already have one. This Worker will send records to your Pipeline.
 
-To create a Worker, run:
+To create a Worker, run the following command in a terminal:
 
 <PackageManagers
 	type="create"
@@ -96,7 +94,7 @@ Replace `MY_PIPELINE` with the name of the binding you set in Step 3. If sending
 In a production application, you would likely use a [`try...catch`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch) statement to catch the exception and handle it directly (for example, return a custom error or even retry).
 
 ## 5. Publish your Worker
-With your `wrangler.toml` file and `index.ts` file configured, you are ready to publish your producer Worker. To publish your producer Worker, run:
+With your `wrangler.toml` file and `index.ts` file configured, you are ready to publish your Worker. To publish your Worker, run:
 
 ```sh
 npx wrangler deploy
