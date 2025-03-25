@@ -172,7 +172,7 @@ Even though a user may be located far away from the primary database instance, t
 D1 asynchronously replicates changes from the primary database instance to all read replicas. This means that at any given time, a read replica may be arbitrarily out of date. The time it takes for the latest committed data in the primary database instance to be replicated to the read replica is known as the <GlossaryTooltip term="replica lag"> replica lag </GlossaryTooltip>. Replica lag and non-deterministic routing to individual replicas can lead to application data consistency issues.
 The D1 Sessions API solves this by ensuring sequential consistency.
 For more information, refer to [replica lag and consistency model](/d1/best-practices/read-replication/#replica-lag-and-consistency-model).
-
+All write queries are still forwarded to the primary database instance. Read replication only improves the response time for read query requests.
 :::note
 All write queries are still forwarded to the primary database instance. Read replication only improves the response time for read query requests.
 :::
