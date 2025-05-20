@@ -1,0 +1,261 @@
+---
+updated: 2025-05-20
+difficulty: Beginner
+content_type: Tutorial
+pcx_content_type: tutorial
+title: Building a Slackbot with Agents SDK
+products:
+  - Agents
+  - AutoRAG
+languages:
+  - JavaScript
+  - TypeScript
+---
+
+import {
+	Render,
+	Steps,
+	PackageManagers,
+	WranglerConfig,
+	Details,
+} from "~/components";
+
+In this tutorial, you will create an AI-powered Slackbot. The bot will answer user's questions, using the content embeded with [AutoRAG](/autorag). You will use the Agents SDK to create the agent.
+
+For each new thread, you will have a new instance of the agent. You will also store the messages of each thread in the state of the agent. This will allow you to maintain the conversation context.
+
+While this tutorial focuses on building a Slackbot, the same principles can be applied to any use-case that requires an AI-powered agent. You can even extend this tutorial to build agents for incident response, customer support, or any other use-case that requires an AI-powered agent.
+
+## Prerequisites
+
+Before you begin, you'll need the following:
+
+<Render file="prereqs" product="workers" />
+
+3. You will also need a Slack workspace where you have permission to create and manage apps.
+
+## Step 1: Create a Worker project
+
+Create a new Workers project by running the following command:
+
+<PackageManagers type="create" pkg="cloudflare@latest" args={"fast-commerce"} />
+
+<Render
+	file="c3-post-run-steps"
+	product="workers"
+	params={{
+		category: "hello-world",
+		type: "Worker only",
+		lang: "TypeScript",
+	}}
+/>
+
+You will need to install the [Cloudflare Agents SDK](), [AI SDK](), OpenAI provider for AI SDK, [zod](), the [Slack Web API package]().
+
+<PackageManagers pkg="agents ai @ai-sdk/openai zod @slack/web-api" />
+
+Your project is now set up. You can start building your agent!
+
+## Step 2: Handle Slack events
+
+The worker will receive events from Slack. You will need to handle these events and process them accordingly. Slack sends two types of events:
+
+- `url_verification`: To verify the request is from Slack.
+- `event_callback`: Event callback for the events you subscribe to.
+
+You will need to handle both of the events. The `url_verification` event can be handled by our worker and doesn't need to be processed by the agent. The `event_callback` event will be processed by the agent.
+
+To handle the `url_verification` event, you will need to:
+
+1. Check the event type is `url_verification`.
+2. Return the `challenge` value in the response.
+
+In your `index.ts` file, update the `fetch` handler with the below code:
+
+```ts title="src/index.ts" {1-5} {9-25}
+import {
+	type GenericMessageEvent,
+	WebClient,
+	type AppMentionEvent,
+} from "@slack/web-api";
+
+export default {
+	async fetch(request: Request) {
+		const body = (await request.json()) as {
+			type: string;
+			challenge?: string;
+			event: GenericMessageEvent | AppMentionEvent;
+		};
+
+		if (body.type === "url_verification") {
+			return new Response(body.challenge, { status: 200 });
+		}
+
+		if (request.method !== "POST") {
+			return new Response("Not found", { status: 404 });
+		}
+
+		if (body.type !== "event_callback") {
+			return new Response("Not found", { status: 404 });
+		}
+	},
+};
+```
+
+The code above handles the `url_verification` event. It also checks if the request method is `POST` and checks if the event type is not `event_callback`. If any of these conditions are not met, it returns a `404 Not Found` response.
+
+For the `event_callback` type, you will need to
+
+1. extract the timestamp of the event or the message thread.
+2. Create a new instance of the agent using the timestamp.
+3. Pass the event data to the agent.
+
+Add the below code to your `fetch` handler:
+
+```ts title="src/index.ts" {17-20}
+...
+export default {
+	async fetch(request, env, ctx): Promise<Response> {
+		const body = (await request.json()) as { type: string; challenge?: string; event: GenericMessageEvent | AppMentionEvent };
+
+		if (body.type === 'url_verification') {
+			return new Response(body.challenge, { status: 200 });
+		}
+
+		if (request.method !== 'POST') {
+			return new Response('Not found', { status: 404 });
+		}
+
+		if (body.type !== 'event_callback') {
+			return new Response('Not found', { status: 404 });
+		}
+
+		let threadId = body.event.thread_ts || body.event.ts;
+		let agent = await getAgentByName<Env, KnowledgeBaseAgent>(env.KnowledgeBaseAgent, threadId);
+		return await agent.chat(body.event);
+	},
+} satisfies ExportedHandler<Env>;
+```
+
+Note that you have not created the Agent yet. You will create it in the next step.
+
+## Step 1: Create a Slack app
+
+1. Go to [https://api.slack.com/apps](https://api.slack.com/apps) and click on `Create New App`. Select the "From scratch" option.
+2. Enter a name for your app and select the workspace where you want to create the app.
+3. Go to the `OAuth & Permissions` page and add the following Bot Token Scopes to your app:
+   - `app_mentions:read`
+   - `assistant:write`
+   - `chat:write`
+   - `im:read`
+   - `im:write`
+4. In the `Advanced token security via token rotation` section, install the app to your workspace and copy the `Bot User OAuth Token`.
+5. Go to the `Event Subscriptions` page and enable `Enable Events` and add the following bot event subscriptions:
+   - `app_mention`
+   - `assistant_thread_started`
+   - `message.channels`
+   - `message.im`
+6. Generate a Slack app token with the `xapp-` prefix and set the `SLACK_APP_TOKEN` environment variable.
+7. Generate a bot token with the `xoxb-` prefix and set the `SLACK_BOT_TOKEN` environment variable.
+
+### Install the Cloudflare Agents SDK
+
+Open your terminal and run the following command to install the Cloudflare Agents SDK:
+
+```bash
+npm install @cloudflare/agents
+```
+
+### Configure your Cloudflare account
+
+1.  Log in to your Cloudflare account.
+2.  Create a new API token with the "Workers:Write" permission.
+3.  Set the `CLOUDFLARE_API_TOKEN` environment variable with the value of your API token.
+4.  Set the `CLOUDFLARE_ACCOUNT_ID` environment variable with your Cloudflare account ID.
+
+### Set up your Slack app
+
+1.  Create a new Slack app at [https://api.slack.com/apps](https://api.slack.com/apps).
+2.  Enable the "Socket Mode" feature.
+3.  Add the following scopes to your app:
+    - `app_mentions:read`
+    - `chat:write`
+    - `im:read`
+    - `im:write`
+4.  Generate a Slack app token with the `xapp-` prefix and set the `SLACK_APP_TOKEN` environment variable.
+5.  Generate a bot token with the `xoxb-` prefix and set the `SLACK_BOT_TOKEN` environment variable.
+
+## Building your first AI agent
+
+### Create a new agent
+
+Create a new file named `agent.js` and add the following code:
+
+```javascript
+// agent.js
+import { Agent } from "@cloudflare/agents";
+
+class MyAgent extends Agent {
+	constructor(options) {
+		super(options);
+	}
+
+	async handleEvent(event) {
+		// Implement your agent's logic here
+		console.log("Received event:", event);
+	}
+}
+
+export default MyAgent;
+```
+
+### Define agent's capabilities
+
+In the `agent.js` file, you can define your agent's capabilities by implementing the `handleEvent` method. This method will be called whenever the agent receives an event from Slack.
+
+### Implement the agent's logic
+
+Inside the `handleEvent` method, you can implement your agent's logic to process the event and take appropriate actions. For example, you can send a message to Slack, update a database, or call an external API.
+
+## Connecting to Slack
+
+### Integrate the agent with your Slack app
+
+To integrate your agent with your Slack app, you need to create a new Cloudflare Worker and configure it to use your Slack app token and bot token.
+
+### Handle Slack events
+
+The Cloudflare Agents SDK provides a `handleEvent` method that you can use to handle Slack events. This method will be called whenever your agent receives an event from Slack.
+
+### Send messages to Slack
+
+You can send messages to Slack using the Slack API. The Cloudflare Agents SDK provides a `slack` object that you can use to interact with the Slack API.
+
+## Advanced features (Optional)
+
+### Using environment variables
+
+You can use environment variables to store sensitive information, such as API keys and tokens. This allows you to keep your code secure and avoid hardcoding sensitive information in your code.
+
+### Logging and monitoring
+
+You can use logging and monitoring to track the performance of your agent and identify any issues. The Cloudflare Agents SDK provides a `logger` object that you can use to log messages.
+
+### Error handling
+
+You can use error handling to gracefully handle errors that may occur in your agent. The Cloudflare Agents SDK provides an `errorHandler` object that you can use to handle errors.
+
+## Deployment
+
+### Deploy your agent to Cloudflare Workers
+
+1.  Create a new Cloudflare Worker.
+2.  Copy the code from your `agent.js` file to the Worker.
+3.  Set the `SLACK_APP_TOKEN` and `SLACK_BOT_TOKEN` environment variables in the Worker settings.
+4.  Deploy the Worker.
+
+### Test your agent in Slack
+
+1.  Invite your Slack app to a channel in your Slack workspace.
+2.  Send a message to the channel that mentions your app.
+3.  Verify that your agent receives the event and responds appropriately.
