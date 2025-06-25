@@ -10,7 +10,7 @@ sidebar:
 
 import { Render, GlossaryTooltip  } from "~/components"
 
-With Cloudflare Zero Trust, users can connect to an RDP server without installing an RDP client or the [WARP client](/cloudflare-one/connections/connect-devices/warp/) on their device. Browser-based RDP leverages [Cloudflare Tunnel](/cloudflare-one/connections/connect-networks/), which creates a secure, outbound-only connection from your RDP server to Cloudflare's global network. Setup involves running the `cloudflared` daemon on the RDP server (or any other host machine within the private network) and routing RDP traffic over a public hostname.
+Users can connect to an RDP server without installing an RDP client or the [WARP client](/cloudflare-one/connections/connect-devices/warp/) on their device. Browser-based RDP leverages [Cloudflare Tunnel](/cloudflare-one/connections/connect-networks/), which creates a secure, outbound-only connection from your RDP server to Cloudflare's global network. Setup involves running the `cloudflared` daemon on the RDP server (or any other host machine within the private network) and routing RDP traffic over a public hostname.
 
 There are two ways for users to [reach the RDP server in their browser](#4-connect-as-a-user):
 - **App Launcher**: Users can log in to the [Access App Launcher](/cloudflare-one/applications/app-launcher/) with their Cloudflare Access credentials and then initiate an RDP connection within the browser to their Windows machine. Users will authenticate to the Windows machine using their pre-configured Windows username and password. Cloudflare does not manage any credentials on the Windows server.
@@ -36,11 +36,11 @@ Browser-based RDP can be used in conjunction with [routing over WARP](/cloudflar
 
 ## 3. Create a DNS record
 
-To enable Cloudflare to connect you to your targets (i.e., your Windows machines), you must configure a DNS record for the full public domain (including the subdomain) Cloudflare will be routing your browser-based RDP traffic through. This domain will be used to access any targets that are accessible to users through your Access application (see Step 4).
+To connect you to your RDP targets (i.e., your Windows machines), configure a DNS record (including the subdomain) that users will connect to RDP targets with. This domain will be used to access any targets that are accessible to users through your Access application (see Step 4).
 
-For example, if your Access application is configured for `rdp.example.com`, you must have a DNS record for `rdp` under the `example.com` domain.
+For example, if your Access application is configured for `rdp.example.com`, you must have an "A" or "AAAA" DNS record for `rdp.example.com` created.
 
-To do this, go to the [Cloudflare dashboard](https://dash.cloudflare.com/login), select your domain, then go to **DNS** > **Records** and verify that a [DNS record](/dns/manage-dns-records/how-to/create-dns-records/) exists for your domain. Again, the subdomain *must* have a record as well.
+To do this, go to the [Cloudflare dashboard](https://dash.cloudflare.com/login), select your domain, go to **DNS** > **Records** and verify that a [DNS record](/dns/manage-dns-records/how-to/create-dns-records/) exists for your desired RDP domain.
 
 If you do not already have a DNS record, [create a new DNS record](/dns/manage-dns-records/how-to/create-dns-records/#create-dns-records). Using `rdp.example.com` for demonstration, create an `AAAA` record that points your public subdomain (`rdp`) to the IPv6 [discard address range](https://www.rfc-editor.org/rfc/rfc6666.html):
 
@@ -48,6 +48,8 @@ If you do not already have a DNS record, [create a new DNS record](/dns/manage-d
 - **Name**: `rdp`
 - **IPv6 address**: `100::`
 - **Proxy status**: On
+
+The domain does not need to point to a valid IP address. Cloudflare's RDP proxy will handle the routing to the correct target machine. The DNS record just has to exist.
 
 :::note
 		If you choose to create a _CNAME_ DNS record instead, *the Target field must be a fully qualified domain name.* It is *NOT* the target ID that you created in step (2). Using the example above, `rdp` would be the record Name and the Target field would be `www.rdp.example.com`. Proxy status would also need to be set to "On."
