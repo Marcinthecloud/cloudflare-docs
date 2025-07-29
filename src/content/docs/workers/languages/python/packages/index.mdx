@@ -9,10 +9,10 @@ head:
 import { Render } from "~/components";
 
 [Pywrangler](https://github.com/cloudflare/workers-py?tab=readme-ov-file#pywrangler) is a CLI tool for managing packages and Python Workers.
-It is meant as a wrapper for wrangler that sets up a full environment for you, including bundling your packages into
+It is meant as a wrapper for [Wrangler CLI](/workers/wrangler/) that sets up a full Python virtual environment for you, including bundling your packages into
 your worker bundle on deployment.
 
-To get started, create a pyproject.toml file with the following contents:
+To get started, create a `pyproject.toml` file with the following contents:
 
 ```toml
 [project]
@@ -28,7 +28,7 @@ dependencies = [
 dev = ["workers-py"]
 ```
 
-The above will allow your worker to depend on the [FastAPI](https://fastapi.tiangolo.com/) package.
+The above will allow your Worker to depend on the [FastAPI](https://fastapi.tiangolo.com/) package.
 
 To run the worker locally:
 
@@ -44,7 +44,7 @@ uv run pywrangler deploy
 
 Your dependencies will get bundled with your worker automatically on deployment.
 
-The `pywrangler` CLI also supports all commands supported by the `wrangler` tool, for the full list of commands run `uv run pywrangler --help`.
+`pywrangler` also supports all [commands supported by Wrangler](/workers/wrangler/commands/). For the full list of commands run `uv run pywrangler --help`.
 
 ## HTTP Client Libraries
 
