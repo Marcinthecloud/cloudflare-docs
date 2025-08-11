@@ -12,6 +12,19 @@ Consider the sections below to learn how to access analytics and logs for your D
 
 ## Analytics
 
+### Dashboard
+
+For a quick summary, view your DNS Firewall analytics on the dashboard:
+
+1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com/login) and select your account.
+2. Go to **DNS Firewall** > **Analytics**.
+
+The DNS analytics dashboard contains [four main panels](#panels). The filters and time frame that you specify at the top of the page apply to all of them.
+
+#### Available dimensions
+
+#### Panels
+
 ### GraphQL
 
 Use the [GraphQL API](/analytics/graphql-api/) to access DNS Firewall analytics. Refer to the GraphQL Analytics API documentation for guidance on how to [get started](/analytics/graphql-api/getting-started/).
@@ -21,10 +34,11 @@ The DNS Firewall analytics has two [schemas](/analytics/graphql-api/getting-star
 * `dnsFirewallAnalyticsAdaptive`: Retrieve information about individual DNS Firewall queries.
 * `dnsFirewallAnalyticsAdaptiveGroups`: Get reports on aggregate information only.
 
-### Cloudflare API <Badge text="Legacy" variant="caution" size="medium" />
+### API <Badge text="Legacy" variant="caution" size="medium" />
 
 You can also use the DNS Firewall API [reports endpoint](/api/resources/dns_firewall/subresources/analytics/subresources/reports/).
 
+---
 
 ## Logs
 
