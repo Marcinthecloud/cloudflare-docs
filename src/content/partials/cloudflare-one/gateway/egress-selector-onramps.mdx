@@ -3,23 +3,31 @@
 
 ---
 
+import { Render, Details, GlossaryTooltip } from "~/components"
+
 | On-ramp method                                                                             | Compatibility |
 | ------------------------------------------------------------------------------------------ | ------------- |
 | [WARP](/cloudflare-one/connections/connect-devices/warp/)                                  | ✅            |
 | [PAC files](/cloudflare-one/connections/connect-devices/agentless/pac-files/)              | ✅            |
 | [Browser Isolation](/cloudflare-one/policies/browser-isolation/)                           | ✅            |
-| [Magic WAN](/magic-wan/zero-trust/cloudflare-gateway/)                                     | 🚧[^1]        |
 | [WARP Connector](/cloudflare-one/connections/connect-networks/private-net/warp-connector/) | ✅            |
+| [Magic WAN](/magic-wan/zero-trust/cloudflare-gateway/)                                     | 🚧[^1]        |
 
 [^1]: Not compatible with [ECMP routing](/magic-wan/reference/traffic-steering/#equal-cost-multi-path-routing). For hostname-based routing to work, DNS queries and the resulting network traffic must reach Cloudflare over the same Magic WAN tunnel. <br/>
 
-:::note[WARP Connector and Magic WAN]
 
-DNS traffic to the Gateway resolver must route through Cloudflare's network instead of over the public Internet. If your devices are behind WARP Connector, you may need to [configure your router](/cloudflare-one/connections/connect-networks/private-net/warp-connector/site-to-internet/#3-route-traffic-from-subnet-to-warp-connector) to route the Gateway resolver IPs through WARP Connector. If your devices are behind Magic WAN, [create a route](/magic-wan/configuration/manually/how-to/configure-routes/) to route the Gateway resolver IPs through the Magic WAN tunnel.
+<Details header="WARP Connector and Magic WAN routes" open = {true}>
+If devices are behind WARP Connector or Magic WAN, you may need to update the routing table on your device or router to send traffic to Gateway. Ensure that traffic to the following destination IPs route through WARP Connector / Magic WAN:
 
-The Gateway resolver IPs are:
+- <GlossaryTooltip term="initial resolved IP">Initial resolved IP</GlossaryTooltip> CGNAT range:
+	<Render file="gateway/egress-selector-cgnat-ips" />
+- Private network CIDR where the application is located (for example, `10.0.0.0/8`)
+- Internal DNS resolver IP
+- Gateway resolver IPs:
+	- `172.64.36.1`
+	- `172.64.36.2`
 
-- `172.64.36.1`
-- `172.64.36.2`
+Additionally, ensure that your local DNS resolver points to the Gateway resolver IPs listed above.
 
-:::
+</Details>
+
