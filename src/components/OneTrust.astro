@@ -41,3 +41,9 @@ const uuid = isProduction
 		background-color: inherit !important;
 	}
 </style>
+
+<script>
+	window.addEventListener("consent.onetrust", async () => {
+		await fetch("/", { method: "HEAD" });
+	});
+</script>
