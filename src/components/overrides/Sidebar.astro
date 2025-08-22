@@ -148,6 +148,25 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 	}
 
 	/**
+	 * Show all contents within a matching folder (including nested folders)
+	 */
+	function showAllContentsInFolder(folder: Element, visibleGroups: Set<Element>): void {
+		// Show all list items within this folder
+		const allItemsInFolder = folder.querySelectorAll(SELECTORS.listItems);
+		allItemsInFolder.forEach(item => {
+			toggleItemVisibility(item as HTMLElement, true);
+		});
+
+		// Show and expand all nested folders within this folder
+		const nestedGroups = folder.querySelectorAll(SELECTORS.detailsGroups);
+		nestedGroups.forEach(nestedGroup => {
+			visibleGroups.add(nestedGroup);
+			toggleItemVisibility(nestedGroup as HTMLElement, true);
+			(nestedGroup as HTMLDetailsElement).open = true;
+		});
+	}
+
+	/**
 	 * Filter sidebar items based on search query
 	 */
 	function filterSidebarItems(query: string): void {
@@ -167,6 +186,7 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 		const allGroups = sidebarContent.querySelectorAll(SELECTORS.detailsGroups);
 		const visibleGroups = new Set<Element>();
 		const matchingFolders = new Set<Element>();
+		const itemsInMatchingFolders = new Set<Element>();
 
 		// First pass: identify folders that match the query
 		allGroups.forEach(group => {
@@ -175,6 +195,12 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 				matchingFolders.add(group);
 				visibleGroups.add(group);
 				(group as HTMLDetailsElement).open = true;
+				// Show all contents within this matching folder
+				showAllContentsInFolder(group, visibleGroups);
+				
+				// Track all items within this matching folder
+				const itemsInFolder = group.querySelectorAll(SELECTORS.listItems);
+				itemsInFolder.forEach(item => itemsInMatchingFolders.add(item));
 			}
 		});
 
@@ -183,8 +209,7 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 			let shouldShowItem = false;
 
 			// Check if this item is inside a matching folder
-			const parentGroup = item.closest(SELECTORS.detailsGroups);
-			if (parentGroup && matchingFolders.has(parentGroup)) {
+			if (itemsInMatchingFolders.has(item)) {
 				shouldShowItem = true;
 			} else {
 				// Otherwise, check if the individual item matches
@@ -198,12 +223,25 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 			}
 		});
 
-		// Hide empty groups that don't contain visible items
+		// Handle nested groups visibility
 		allGroups.forEach(group => {
 			if (!visibleGroups.has(group)) {
-				const visibleChildren = group.querySelectorAll('li:not([style*="display: none"])');
-				const hasVisibleChildren = visibleChildren.length > 0;
-				toggleItemVisibility(group as HTMLElement, hasVisibleChildren);
+				// Check if this group is inside a matching folder
+				const parentMatchingFolder = Array.from(matchingFolders).find(folder => 
+					folder.contains(group)
+				);
+				
+				if (parentMatchingFolder) {
+					// This group is inside a matching folder, so it should be visible
+					visibleGroups.add(group);
+					toggleItemVisibility(group as HTMLElement, true);
+					(group as HTMLDetailsElement).open = true;
+				} else {
+					// Check if it has visible children
+					const visibleChildren = group.querySelectorAll('li:not([style*="display: none"])');
+					const hasVisibleChildren = visibleChildren.length > 0;
+					toggleItemVisibility(group as HTMLElement, hasVisibleChildren);
+				}
 			} else {
 				toggleItemVisibility(group as HTMLElement, true);
 			}
