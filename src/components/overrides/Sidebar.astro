@@ -26,6 +26,16 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 		style="border-color: var(--sl-color-hairline-light); background: var(--sl-color-bg-sidebar); color: var(--sl-color-text);"
 	/>
 </div>
+
+<!-- No Results Message -->
+<div id="no-results-message" class="p-4 text-center rounded-md my-2 border" style="display: none; background-color: var(--sl-color-bg-sidebar); border-color: var(--sl-color-hairline-light);">
+	<p class="mb-1 font-semibold text-sm" style="color: var(--sl-color-text);">No results found</p>
+	<p class="m-0 text-xs" style="color: var(--sl-color-text-accent);">
+		Try a different search term, or
+		<button id="global-search-link" class="underline cursor-pointer" style="color: var(--sl-color-accent); background: none; border: none; padding: 0; font: inherit;">use our global search</button>.
+	</p>
+</div>
+
 <Default><slot /></Default>
 
 <script>
@@ -42,7 +52,8 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 		listItems: 'li',
 		detailsGroups: 'details',
 		links: 'a',
-		summaries: 'summary'
+		summaries: 'summary',
+		noResultsMessage: '#no-results-message'
 	} as const;
 
 
@@ -117,6 +128,12 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 
 		allItems.forEach(item => toggleItemVisibility(item as HTMLElement, true));
 		allGroups.forEach(group => toggleItemVisibility(group as HTMLElement, true));
+
+		// Hide no results message
+		const noResultsMessage = document.querySelector(SELECTORS.noResultsMessage) as HTMLElement;
+		if (noResultsMessage) {
+			noResultsMessage.style.display = 'none';
+		}
 	}
 
 	/**
@@ -206,6 +223,35 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 				toggleItemVisibility(group as HTMLElement, hasVisibleChildren);
 			}
 		});
+
+		// Check if any items are visible and show/hide no results message
+		const visibleItems = sidebarContent.querySelectorAll('li:not([style*="display: none"])');
+		const noResultsMessage = document.querySelector(SELECTORS.noResultsMessage) as HTMLElement;
+		if (noResultsMessage) {
+			noResultsMessage.style.display = visibleItems.length === 0 ? 'block' : 'none';
+
+			// Set up global search link click handler
+			if (visibleItems.length === 0) {
+				const globalSearchLink = noResultsMessage.querySelector('#global-search-link') as HTMLButtonElement;
+				if (globalSearchLink) {
+					globalSearchLink.onclick = () => {
+						// Trigger DocSearch modal and pass the current query
+						const docSearchButton = document.querySelector('#docsearch button') as HTMLButtonElement;
+						if (docSearchButton) {
+							docSearchButton.click();
+							// Wait for modal to open and set the search query
+							setTimeout(() => {
+								const docSearchInput = document.querySelector('#docsearch-input') as HTMLInputElement;
+								if (docSearchInput) {
+									docSearchInput.value = query;
+									docSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+								}
+							}, 100);
+						}
+					};
+				}
+			}
+		}
 	}
 
 	// Initialize search functionality when DOM is ready
@@ -220,6 +266,7 @@ const [product, module] = Astro.url.pathname.split("/").filter(Boolean);
 		border-color: var(--sl-color-accent) !important;
 		--tw-ring-color: var(--sl-color-accent);
 	}
+
 
 	:root {
 		.sidebar-content {
