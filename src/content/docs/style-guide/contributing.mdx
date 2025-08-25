@@ -1,0 +1,84 @@
+---
+title: Contributing
+description: |
+sidebar:
+    order: 1
+---
+import { Steps } from "~/components"
+
+The [Cloudflare Docs](https://developers.cloudflare.com/) are open source and hosted on the [cloudflare-docs repository](https://github.com/cloudflare/cloudflare-docs) on GitHub. This means that anyone, including those who are not part of the Cloudflare organization, can contribute to them. We welcome all suggestions that help keep our docs high quality and up to date.
+
+To contribute to our docs, you will need to [create an account on GitHub](https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github) (if you do not have one already) and log in. Then you have two options:
+* **[Create a GitHub issue](#create-a-github-issue)**: This is best if you want to quickly submit a general suggestion.
+* **[Create a GitHub pull request](#create-a-github-pull-request)**: This is best if you have a specific edit you want to make to a specific doc or docs. This option may require some setup, depending on what method you use.
+
+In addition to using the [Cloudflare Style Guide](/style-guide/) for guidance on grammar and style, we recommend browsing our [components](/style-guide/components/) to add additional formatting such as [notes](/style-guide/documentation-content-strategy/component-attributes/notes-tips-warnings/) and [code blocks](/style-guide/components/code/).
+
+## Create a GitHub issue
+To contribute to our docs by creating a GitHub issue:
+<Steps>
+1. [Log in to GitHub](http://github.com/login) and go to the [cloudflare-docs repo](https://github.com/cloudflare/cloudflare-docs).
+2. Select **Issues** and then **New issue**. [Learn more about creating GitHub Issues.](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue)
+3. Select the issue type, fill out the form, and select **Create**.
+</Steps>
+
+## Create a GitHub pull request
+There are several methods you can use to edit the Cloudflare Docs by creating a pull request:
+* **[Edit page](#edit-page)** — This is the simplest way. It is best if you only want to edit one doc, only want to use your web browser, and do not need to preview your changes.
+* **[Create with Codespace](#create-with-codespace)** — This is best if you want to edit multiple docs, only want to use your web browser, and want to preview your changes.
+* **[Edit locally](#edit-locally)** — This is the more-advanced way that requires setting up a local environment. Like the Codespace method, it allows you to edit multiple docs and preview your changes.
+[Learn more about creating pull requests on GitHub.](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
+
+### Edit page
+To create a GitHub pull request using the edit page method:
+<Steps>
+1. [Log in to GitHub](http://github.com/login).
+2. Open the doc from the [Cloudflare Docs](https://developers.cloudflare.com/) that you want to edit, scroll to the bottom left corner of the doc, and select **Edit page**:![Edit page icon](~/assets/images/style-guide/ui-elements/edit-page.png)
+3. You will see a GitHub landing page that says “You need to fork this repository to propose changes.” Select **Fork this repository**.
+4. You will see the markdown of the doc. Make your edits and select **Commit changes**.
+5. In the form, update the **Commit message** with the product you changed in brackets and a brief description of your changes. For example “[Images] Fixed broken link upload-URL.mdx”. Update the **Extended description** with more details about what you changed and why. The more details, the better.
+6. Select **Propose changes** > **Create pull request** > **Create pull request** again.
+</Steps>
+
+### Create with Codespace
+To create a GitHub pull request using the create with Codespace method:
+<Steps>
+1. [Log in to GitHub](http://github.com/login) and go to the [cloudflare-docs repo](https://github.com/cloudflare/cloudflare-docs).
+2. Select the **Code** dropdown > **Codespaces** tab > **Create codespace on production**.
+3. Codespace will open on the main “production” branch. Make sure you are on the latest version of production. To do so, select the **Source Control** icon in the sidebar > the ellipsis next to **Changes** > **Pull**.
+4. Do not make your edits on the main “production” branch. Instead, select the current branch (in this case, “production”) from the bar on the bottom of the window, type a name for your branch, and then select **Create new branch**.
+5. Select the **Explorer** icon in the left sidebar (it looks like two files) and then **src** > **content** > **docs** > and find the mdx file of the doc you want to edit in the file structure. If you want to edit a product Overview doc, you would edit the index.mdx inside of the product folder.
+6. You will see the markdown of the doc. Make your edits.
+7. To preview your changes, type `npm run dev` into the Codespace terminal. You might be prompted to install [Astro](https://astro.build/) or `npm`. If you experience errors, try using the `npm i` command to install `npm`. A link will appear in the terminal, `http://localhost:1111/`, which will bring you to a version of the Cloudflare Docs where you can find and preview how your changes will look. This link automatically updates with any new changes you make as you edit.
+8. Stage your changes by selecting **Source Control** in the left sidebar and then selecting the plus sign next to the file name under **Changes**.
+9. Commit your changes by entering a commit message in the form that briefly describes your changes, and then selecting **Commit** > **Publish Branch** > **origin**.
+10. Return to GitHub and select **Compare & pull request** next to your pull request.
+11. Update the title with the product you changed in brackets and a brief description of your changes. For example “[Images] Fixed broken link upload-URL.mdx”. For the description, add more details about what you changed and why. The more details, the better.
+12. Select **Create pull request**.
+</Steps>
+[Learn more about GitHub Codespaces.](https://docs.github.com/en/codespaces/quickstart)
+
+### Edit locally
+To create a GitHub pull request using the edit locally method, first setup the following local environment:
+* Install Node.js (version 22 or later). We recommend that you install Node.js and `npm` with [Volta](https://volta.sh/) because Volta makes it easy to manage and switch between Node versions. Alternatively, you can [install directly from Node.js](https://nodejs.org/en).
+  ```bash
+  $ curl https://get.volta.sh | bash
+  $ volta install node@22
+  ```
+* Open the project directory and install all required dependencies. You can use `npm`, which came bundled with your Node.js installation, or any other package manager.
+  ```bash
+  $ npm install
+	```
+In addition to your project dependencies, a file called `package-lock.json` is also generated, which ensures that everyone uses the exact same dependency versions. Be sure to commit `package-lock.json` to git whenever it changes.
+
+After setup, you will follow the same process as the **[create with Codespace method](#create-with-codespace)**: pull production > create a new branch > stage, commit, and publish changes > create your pull request on GitHub.
+
+## After you create an issue or PR
+After you open an issue or PR, a member of the Cloudflare organization will review your suggestion. Here is what to expect:
+* If your suggestion is accepted, a member of the Cloudflare organization may tag others for technical or content reviews or feedback.
+	* If you created an issue, a Cloudflare member might create and link a new PR that addresses your request. When they merge the PR, they will also close your issue.
+	* If you opened a PR, the Cloudflare member will merge your PR after it has been reviewed and approved.
+* If your suggestion requires more information, a member of the Cloudflare organization may comment with a follow-up or clarification question. If they add the `more-information-needed` tag, the issue or PR will automatically close if you do not respond within 14 days.
+* If your suggestion is not accepted, the Cloudflare member will respond with the reasoning and close your issue or PR.
+
+Thank you for contributing to our open-source ecosystem and being a part of the Cloudflare community.
