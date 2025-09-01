@@ -10,8 +10,8 @@ The [Cloudflare Docs](https://developers.cloudflare.com/) are open source and ho
 
 To contribute to our docs, you will need to [create an account on GitHub](https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github) (if you do not have one already) and log in. Then you have three options:
 * [GitHub issue](#create-a-github-issue): Quickly submit a general suggestion.
-* [Quick edit (edit button)](#quick-edit): Quickly open a pull request. This is best if you want to edit a single page in your web browser, and do not need to preview your changes.
-* [Full development](#full-development): Open a pull request. This is best if you want to edit multiple pages and preview your changes. This can be done in your web browser (with [Codespaces](https://docs.github.com/codespaces)) or on your local machine (with [Visual Studio Code](https://code.visualstudio.com/)).
+* [Quick edit (edit button)](#quick-edit): Quickly create a pull request. This is best if you want to edit a single page in your web browser, and do not need to preview your changes.
+* [Full development](#full-development): Create a pull request. This is best if you want to edit multiple pages and preview your changes. This can be done in your web browser (with [Codespaces](https://docs.github.com/codespaces)) or on your local machine (with [Visual Studio Code](https://code.visualstudio.com/)).
 
 In addition to using the [Cloudflare Style Guide](/style-guide/) for guidance on grammar and style, we recommend browsing our [components](/style-guide/components/) to add additional formatting such as [notes](/style-guide/documentation-content-strategy/component-attributes/notes-tips-warnings/) and [code blocks](/style-guide/components/code/).
 
@@ -24,7 +24,7 @@ To create a GitHub issue:
 [Learn more about creating GitHub issues.](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue)
 
 ## Quick edit
-To quickly open a pull request using the edit button:
+To quickly create a pull request using the edit button:
 1. [Log in to GitHub](https://github.com/login).
 2. Go to the page you want to edit in the [Cloudflare Docs](https://developers.cloudflare.com/)
 3. Select <Details header="**Edit** or **Edit page**">Every page in the Cloudflare Docs (including this one) has an **Edit** button on the right sidebar and an **Edit page** button on the very bottom of the page.
@@ -39,7 +39,7 @@ The page's markdown opens.
 7. Select **Propose changes** > **Create pull request** > **Create pull request** again.
 
 ## Full development
-To edit and open a pull request with the full development workflow:
+To edit and create a pull request with the full development workflow:
 1. [Log in to GitHub](https://github.com/login) and [fork the cloudflare-docs repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo).
 2. If you are editing in your web browser (with [Codespaces](https://docs.github.com/en/codespaces)), move on to step 3.
 <br/>If you are editing on your local machine (with [Visual Studio Code](https://code.visualstudio.com/)):
@@ -48,17 +48,17 @@ To edit and open a pull request with the full development workflow:
 	* (Required) [Clone the fork to your local machine.](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
 3. [Create a branch from your fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository) (or from your clone).
 3. Make your edits.
-4. (Optional) Preview your edits. This requires installing `npm`. Follow the prompts to install it or run `npm install`. A link will appear in the terminal, `https://localhost:1111/`, where you can preview your edits. This link automatically updates with any new edits you make.
+4. (Optional) Preview your edits. This requires installing `npm`. Follow the prompts to install it or run `npm install`. Then, run `npm run dev`. A link will appear in the terminal, `https://localhost:1111/`, where you can preview your edits. This link automatically updates with any new edits you make.
 5. [Commit your changes](https://docs.github.com/en/codespaces/developing-in-a-codespace/using-source-control-in-your-codespace).
 6. [Push your commits](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository) to your branch and then back to your fork.
 7. Return to GitHub and [create a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) from your committed changes. In the description form, add the product you changed in brackets and a brief description of your changes. For example “[Images] Fixed broken link."
 
 ## After you create an issue or PR
-After you open an issue or PR, a member of the Cloudflare organization will review your suggestion. Here is what to expect:
+After you create an issue or PR, a member of the Cloudflare organization will review your suggestion. Here is what to expect:
 * A member of the Cloudflare organization may tag others for technical or content reviews or feedback.
-* If your suggestion requires more information, a member of the Cloudflare organization may comment with a follow-up or clarification question. If they add the `more-information-needed` tag, the issue or PR will automatically close if you do not respond within 14 days.
+* If your suggestion requires more information, a member of the Cloudflare organization may comment with a follow-up or clarification question. If they add the `more-information-needed` tag, the issue or pull request will automatically close if you do not respond within 14 days.
 * If your changes are approved:
-	* For GitHub issues, a Cloudflare member might create and link a new PR that addresses your request. When they merge the PR, they will also close your issue.
+	* For GitHub issues, a Cloudflare member might create and link a new pull request that addresses your request. When they merge the PR, they will also close your issue.
 	* For GitHub PRs, the Cloudflare member will merge your PR.
 * If your suggestion is not approved, the Cloudflare member will respond with the reasoning and close your issue or PR.
 
