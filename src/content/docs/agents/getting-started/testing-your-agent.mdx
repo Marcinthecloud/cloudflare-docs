@@ -11,7 +11,7 @@ Because Agents run on Cloudflare Workers and Durable Objects, they can be tested
 
 ## Writing and running tests
 
-### Setup
+### 1. Setup your environment
 
 :::note
 
@@ -42,7 +42,7 @@ export default defineWorkersConfig({
 });
 ```
 
-### Add the Agent configuration
+### 2. Add the Agent configuration
 
 Add a `durableObjects` configuration to `vitest.config.js` with the name of your Agent class:
 
@@ -65,7 +65,7 @@ export default defineWorkersConfig({
 });
 ```
 
-### Write a test
+### 3. Write a test
 
 :::note
 
@@ -110,7 +110,7 @@ describe("make a request to my Agent", () => {
 });
 ```
 
-### Run tests
+### 4. Run tests
 
 Running tests is done using the `vitest` CLI:
 
