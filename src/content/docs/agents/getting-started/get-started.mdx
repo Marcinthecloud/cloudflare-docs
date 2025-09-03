@@ -27,45 +27,52 @@ To use the Agent starter template and create your first Agent with the Agents SD
 
 ## Manually create an Agent
 
+<Steps>
 1. Install the `agents` package directly into an existing project:
 
-```sh
-npm i agents
-```
+   ```sh
+   npm i agents
+   ```
 
 2. Define your first Agent by creating a class that extends the `Agent` class:
 
-<TypeScriptExample>
+   <TypeScriptExample>
 
-```ts
-import { Agent, AgentNamespace } from "agents";
+   ```ts
+   import { Agent, AgentNamespace } from "agents";
 
-export class MyAgent extends Agent {
-	// Define methods on the Agent:
-	// https://developers.cloudflare.com/agents/api-reference/agents-api/
-	//
-	// Every Agent has built in state via this.setState and this.sql
-	// Built-in scheduling via this.schedule
-	// Agents support WebSockets, HTTP requests, state synchronization and
-	// can run for seconds, minutes or hours: as long as the tasks need.
-}
-```
+   export class MyAgent extends Agent {
+   // Define methods on the Agent:
+   // https://developers.cloudflare.com/agents/api-reference/agents-api/
+   //
+   // Every Agent has built in state via this.setState and this.sql
+   // Built-in scheduling via this.schedule
+   // Agents support WebSockets, HTTP requests, state synchronization and
+   // can run for seconds, minutes or hours: as long as the tasks need.
+   }
+   ```
 
-</TypeScriptExample>
+   </TypeScriptExample>
 
 3. Add the [Durable Objects](/durable-objects/) binding to your wrangler file:
 
-<WranglerConfig>
-```toml
-[[durable_objects.bindings]]
-name = "MyAgent"
-class_name = "MyAgent"
+   <WranglerConfig>
+   ```toml
+   [[durable_objects.bindings]]
+    name = "MyAgent"
+    class_name = "MyAgent"
 
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["MyAgent"]
+   [[migrations]]
+    tag = "v1"
+    new_sqlite_classes = ["MyAgent"]
 
-```
-</WranglerConfig>
+   ```
+   </WranglerConfig>
+
+</Steps>
 
 Dive into the [Agent SDK reference](/agents/api-reference/agents-api/) to learn more about how to use the Agents SDK package and defining an `Agent`.
+
+## Additional resources
+
+- [Prompt an AI model](/workers/get-started/prompting/)
