@@ -1,100 +1,158 @@
 ---
-title: Agents SDK v0.1.0-beta adds AI SDK v5 support, automatic message migration, and enhanced tool workflows
-description: The latest release transforms the Agents SDK with full AI SDK v5 compatibility, seamless legacy message migration, intelligent tool confirmation detection, and streamlined React hooks for building production-ready AI chat interfaces.
+title: Agents SDK v0.1.0-beta and workers-ai-provider v2.0.0 add AI SDK v5 support
+description: The latest release updates the Agents SDK with full AI SDK v5 compatibility, updated workers-ai-provider v2.0.0 with enhanced streaming and tool support, seamless legacy message migration, tool confirmation detection, and React hooks for building production-ready AI chat interfaces.
 products:
   - agents
   - workers
-date: 2025-09-03
+date: 2025-09-04
 ---
 
-We've shipped a major release for the [Agents SDK](https://github.com/cloudflare/agents), bringing full compatibility with [AI SDK v5](https://ai-sdk.dev/docs/introduction) and introducing automatic message migration that handles all legacy formats transparently.
+We've shipped a major release for the [Agents SDK](https://github.com/cloudflare/agents) and [workers-ai-provider](https://github.com/cloudflare/ai), bringing full compatibility with [AI SDK v5](https://ai-sdk.dev/docs/introduction) and introducing automatic message migration that handles all legacy formats transparently.
 
-This update adds tool confirmation detection, enhanced React hooks with automatic tool resolution, improved error handling for streaming responses, and seamless migration utilities that work behind the scenes.
+This update includes workers-ai-provider v2.0.0 with improved streaming and tool support, tool confirmation detection, enhanced React hooks with automatic tool resolution, improved error handling for streaming responses, and seamless migration utilities that work behind the scenes.
 
-This makes it ideal for building production AI chat interfaces, agent workflows, human-in-the-loop systems, or any application requiring reliable message handling across SDK versions — all while maintaining backward compatibility.
+This makes it ideal for building production AI chat interfaces with Cloudflare Workers AI models, agent workflows, human-in-the-loop systems, or any application requiring reliable message handling across SDK versions — all while maintaining backward compatibility.
 
-## Core Changes
+#### useAgentChat(options)
 
-### 1. Message Type Updates
+Creates a new chat interface with enhanced v5 capabilities.
 
-**Before (AI SDK v4):**
-
-```typescript
-import type { Message } from "ai";
-
-const message: Message = {
-	id: "123",
-	role: "user",
-	content: "Hello, assistant!",
-};
-```
-
-**After (AI SDK v5):**
-
-```typescript
-import type { UIMessage } from "ai";
-// or alias for compatibility
-import type { UIMessage as Message } from "ai";
-
-const message: UIMessage = {
-	id: "123",
-	role: "user",
-	parts: [
-		{
-			type: "text",
-			text: "Hello, assistant!",
-		},
-	],
-};
-```
-
-### 2. Enhanced useAgentChat Hook
-
-**New automatic tool resolution:**
-
-```typescript
-import { useAgentChat, type AITool } from "agents/ai-react";
-
-// Define tools with execute functions for automatic resolution
-const tools = {
-	getLocalTime: {
-		description: "Get current local time",
-		inputSchema: z.object({}),
-		execute: async () => new Date().toLocaleString(), // Auto-executes
-	},
-	getWeatherInformation: {
-		description: "Get weather for a location",
-		inputSchema: z.object({
-			location: z.string(),
-		}),
-		// No execute function = requires confirmation
-	},
-} satisfies Record<string, AITool>;
-
+```ts
+// Basic chat setup
 const { messages, sendMessage, addToolResult } = useAgentChat({
 	agent,
 	experimental_automaticToolResolution: true,
-	tools, // Automatic detection based on execute function presence
+	tools,
+});
+
+// With custom tool confirmation
+const chat = useAgentChat({
+	agent,
+	experimental_automaticToolResolution: true,
+	toolsRequiringConfirmation: ["dangerousOperation"],
 });
 ```
 
-### 3. Simplified Message Sending
+#### Automatic Tool Resolution
 
-**New v5 message format:**
+Tools are automatically categorized based on their configuration:
 
-```typescript
-// Send message with new parts structure
+```ts
+const tools = {
+	// Auto-executes (has execute function)
+	getLocalTime: {
+		description: "Get current local time",
+		inputSchema: z.object({}),
+		execute: async () => new Date().toLocaleString(),
+	},
+
+	// Requires confirmation (no execute function)
+	deleteFile: {
+		description: "Delete a file from the system",
+		inputSchema: z.object({
+			filename: z.string(),
+		}),
+	},
+
+	// Server-executed (no client confirmation)
+	analyzeData: {
+		description: "Analyze dataset on server",
+		inputSchema: z.object({ data: z.array(z.number()) }),
+		serverExecuted: true,
+	},
+} satisfies Record<string, AITool>;
+```
+
+#### Message Handling
+
+Send messages using the new v5 format with parts array:
+
+```ts
+// Text message
 sendMessage({
 	role: "user",
-	parts: [{ type: "text", text: input }],
+	parts: [{ type: "text", text: "Hello, assistant!" }],
+});
+
+// Multi-part message with file
+sendMessage({
+	role: "user",
+	parts: [
+		{ type: "text", text: "Analyze this image:" },
+		{ type: "image", image: imageData },
+	],
 });
 ```
 
-### 4. Tool Definition Migration
+#### Tool Confirmation Detection
 
-**Before:**
+Simplified logic for detecting pending tool confirmations:
 
-```typescript
+```ts
+const pendingToolCallConfirmation = messages.some((m) =>
+	m.parts?.some(
+		(part) => isToolUIPart(part) && part.state === "input-available",
+	),
+);
+
+// Handle tool confirmation
+if (pendingToolCallConfirmation) {
+	await addToolResult({
+		toolCallId: part.toolCallId,
+		tool: getToolName(part),
+		output: "User approved the action",
+	});
+}
+```
+
+### Automatic Message Migration
+
+Seamlessly handle legacy message formats without code changes.
+
+```ts
+// All these formats are automatically converted:
+
+// Legacy v4 string content
+const legacyMessage = {
+	role: "user",
+	content: "Hello world",
+};
+
+// Legacy v4 with tool calls
+const legacyWithTools = {
+	role: "assistant",
+	content: "",
+	toolInvocations: [
+		{
+			toolCallId: "123",
+			toolName: "weather",
+			args: { city: "SF" },
+			state: "result",
+			result: "Sunny, 72°F",
+		},
+	],
+};
+
+// Automatically becomes v5 format:
+// {
+//   role: "assistant",
+//   parts: [{
+//     type: "tool-call",
+//     toolCallId: "123",
+//     toolName: "weather",
+//     args: { city: "SF" },
+//     state: "result",
+//     result: "Sunny, 72°F"
+//   }]
+// }
+```
+
+### Tool Definition Updates
+
+Migrate tool definitions to use the new `inputSchema` property.
+
+```ts
+// Before (AI SDK v4)
 const tools = {
 	weather: {
 		description: "Get weather information",
@@ -102,15 +160,12 @@ const tools = {
 			city: z.string(),
 		}),
 		execute: async (args) => {
-			// Implementation
+			return await getWeather(args.city);
 		},
 	},
 };
-```
 
-**After:**
-
-```typescript
+// After (AI SDK v5)
 const tools = {
 	weather: {
 		description: "Get weather information",
@@ -118,114 +173,88 @@ const tools = {
 			city: z.string(),
 		}),
 		execute: async (args) => {
-			// Implementation
+			return await getWeather(args.city);
 		},
 	},
 };
 ```
 
-### 5. Enhanced Tool Confirmation Logic
+### Cloudflare Workers AI Integration
 
-**Before (manual logic in components):**
+Seamless integration with Cloudflare Workers AI models through the updated workers-ai-provider v2.0.0.
 
-```typescript
-const pendingToolCallConfirmation = messages.some((m) =>
-	m.parts?.some(
-		(part) =>
-			isToolUIPart(part) &&
-			part.state === "input-available" &&
-			// Manual check inside the component
-			!(tools as Record<string, any>)[getToolName(part)]?.execute,
-	),
-);
+#### Model Setup with Workers AI
+
+Use Cloudflare Workers AI models directly in your agent workflows:
+
+```ts
+import { createWorkersAI } from "workers-ai-provider";
+import { useAgentChat } from "agents/ai-react";
+
+// Create Workers AI model (v2.0.0 - same API, enhanced v5 internals)
+const model = createWorkersAI({
+	binding: env.AI,
+})("@cf/meta/llama-3.2-3b-instruct");
+
+// Use with agent chat
+const { messages, sendMessage } = useAgentChat({
+	agent,
+	experimental_automaticToolResolution: true,
+	tools,
+});
 ```
 
-**After (simplified with automatic detection):**
+#### Enhanced File and Image Support
 
-```typescript
-const pendingToolCallConfirmation = messages.some((m) =>
-	m.parts?.some(
-		(part) => isToolUIPart(part) && part.state === "input-available",
-	),
-);
+Workers AI models now support v5 file handling with automatic conversion:
+
+```ts
+// Send images and files to Workers AI models
+sendMessage({
+	role: "user",
+	parts: [
+		{ type: "text", text: "Analyze this image:" },
+		{
+			type: "file",
+			data: imageBuffer,
+			mediaType: "image/jpeg",
+		},
+	],
+});
+
+// Workers AI provider automatically converts to proper format
 ```
 
-### 6. Type Safety Improvements
+#### Streaming with Workers AI
 
-**New enum-based message types:**
+Enhanced streaming support with automatic warning detection:
 
-```typescript
-export enum MessageType {
-	CF_AGENT_CHAT_MESSAGES = "cf_agent_chat_messages",
-	CF_AGENT_USE_CHAT_REQUEST = "cf_agent_use_chat_request",
-	CF_AGENT_USE_CHAT_RESPONSE = "cf_agent_use_chat_response",
-	CF_AGENT_CHAT_CLEAR = "cf_agent_chat_clear",
-	CF_AGENT_CHAT_REQUEST_CANCEL = "cf_agent_chat_request_cancel",
-}
-
-export type OutgoingMessage<ChatMessage extends UIMessage = UIMessage> =
-	| {
-			type: MessageType.CF_AGENT_CHAT_MESSAGES;
-			messages: ChatMessage[];
-	  }
-	| {
-			type: MessageType.CF_AGENT_USE_CHAT_RESPONSE;
-			id: string;
-			body: string;
-			done: boolean;
-			error?: boolean;
-	  };
-```
-
-## 🔧 Breaking Changes
-
-### Message Format Migration
-
-- **Type change**: `Message` → `UIMessage` (with automatic conversion)
-- **Structure change**: `content: string` → `parts: [{type: "text", text}]`
-- **Import updates**: Some imports moved to scoped packages like `@ai-sdk/react`
-
-### Tool Definition Updates
-
-```typescript
-// Before
-const tools = {
-	weather: {
-		parameters: z.object({ city: z.string() }),
+```ts
+// Streaming with Workers AI models
+const result = await streamText({
+	model: createWorkersAI({ binding: env.AI })("@cf/meta/llama-3.2-3b-instruct"),
+	messages,
+	onChunk: (chunk) => {
+		// Enhanced streaming with warning handling
+		console.log(chunk);
 	},
-};
-
-// After
-const tools = {
-	weather: {
-		inputSchema: z.object({ city: z.string() }),
-	},
-};
+});
 ```
 
-## Migration Path
+### Import Updates
 
-### Automatic Data Migration (Recommended)
+Update your imports to use the new v5 types:
 
-**No action required!** The SDK automatically handles all message format conversions:
+```ts
+// Before (AI SDK v4)
+import type { Message } from "ai";
+import { useChat } from "ai/react";
 
-- Loading messages from database
-- Processing incoming messages
-- All message entry points
-
-### Manual Migration (Optional)
-
-For advanced use cases, migration utilities are available:
-
-```typescript
-import { autoTransformMessages, analyzeCorruption } from "agents";
-
-// Analyze existing messages
-const stats = analyzeCorruption(messages);
-console.log(`Found ${stats.legacyString} legacy messages`);
-
-// Manual transformation (usually not needed)
-const cleanMessages = autoTransformMessages(anyFormatMessages);
+// After (AI SDK v5)
+import type { UIMessage } from "ai";
+// or alias for compatibility
+import type { UIMessage as Message } from "ai";
+import { useChat } from "@ai-sdk/react";
 ```
 
 ## Resources
@@ -236,14 +265,8 @@ const cleanMessages = autoTransformMessages(anyFormatMessages);
 
 ## Feedback Welcome
 
-This is a **beta release** - we'd love your feedback! Please test it in your development environment and let us know:
-
-We're particularly interested in feedback on:
+We'd love your feedback! We're particularly interested in feedback on:
 
 - **Migration experience** - How smooth was the upgrade process?
 - **Tool confirmation workflow** - Does the new automatic detection work as expected?
 - **Message format handling** - Any edge cases with legacy message conversion?
-
----
-
-_Note: This is a beta release. While we've tested extensively, please validate thoroughly in your development environment before considering production use._
