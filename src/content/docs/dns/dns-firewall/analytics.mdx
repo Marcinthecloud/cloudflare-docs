@@ -6,7 +6,7 @@ sidebar:
 
 ---
 
-import { Badge, FeatureTable, Details } from "~/components";
+import { Badge, FeatureTable, Details, DashButton } from "~/components";
 
 Consider the sections below to learn how to access analytics and logs for your DNS Firewall.
 
@@ -22,8 +22,11 @@ The historical data available covers 62 days and the maximum time interval you c
 
 For a quick summary, view your DNS Firewall analytics on the dashboard. The DNS analytics dashboard contains [four main panels](#panels). The filters and time frame that you specify at the top of the page apply to all of them.
 
-1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com/login) and select your account.
-2. Go to **DNS Firewall** > **Analytics**.
+1. In the Cloudflare dashboard, go to the **DNS Firewall** page.
+
+   <DashButton url="/?to=/:account/dns-firewall" />
+
+2. Go to **Analytics**.
 
 #### Available dimensions
 
@@ -31,10 +34,12 @@ For a quick summary, view your DNS Firewall analytics on the dashboard. The DNS 
 - Query name
 - Query type (same as DNS record type)
 - Response code
+- Data center
 - Cluster IP
 - Source IP
 - Upstream nameserver IP
-- Query response source (cache, upstream nameserver, stale cache)
+- Response stale (stale or fresh)
+- Response cache (cached or uncached)
 - Response reason
 - Protocol used (UDP or TCP)
 - IP version (IPv4 or IPv6)
