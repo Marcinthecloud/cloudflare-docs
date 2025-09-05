@@ -13,8 +13,12 @@ Below is an example of using [Apache Trino](https://trino.io/) to connect to R2 
 - Install [Docker](https://docs.docker.com/get-docker/) to run the Trino container.
 
 ## Setup
+```bash
+# Create a local directory for the catalog configuration and change directories to it
+mkdir -p trino-catalog && cd trino-catalog/
+```
 
-Create a configuration file for your R2 Data Catalog connection:
+Create a configuration file called `r2.properties` for your R2 Data Catalog connection:
 
 ```properties
 # r2.properties
@@ -41,12 +45,6 @@ iceberg.rest-catalog.oauth2.token=<Your R2 authentication token>
 Start Trino with the R2 catalog configuration:
 
 ```bash
-# Create a local directory for the catalog configuration
-mkdir -p trino-catalog
-
-# Place your r2.properties file in the catalog directory
-cp r2.properties trino-catalog/
-
 # Run Trino with the catalog configuration
 docker run -d \
   --name trino-r2 \
