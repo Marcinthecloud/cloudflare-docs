@@ -118,7 +118,6 @@ SELECT * FROM table2 WHERE id IN ('id1', 'id2', 'id3')
 **Solution**:
 - Denormalize your data by including necessary fields in a single table
 - Perform multiple queries and join data in your application
-- Restructure your data model to avoid cross-table queries
 
 ### Subqueries
 
@@ -206,10 +205,7 @@ SELECT * FROM logs WHERE request_size > response_size
 SELECT * FROM events WHERE duration > 0
 ```
 
-**Solution**:
-- Pre-compute comparisons and store as separate columns
-- Handle comparisons in your application layer
-- Restructure your data model
+**Solution**: Handle comparisons in your application layer
 
 ---
 
@@ -277,7 +273,6 @@ UPDATE events SET status = 200 WHERE user_id = '123'
 
 **Solution**:
 - Plan your schema carefully before data ingestion
-- Contact your data engineering team for schema changes
 - Ensure all column names exist in your current schema
 
 ---

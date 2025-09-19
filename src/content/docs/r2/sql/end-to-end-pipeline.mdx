@@ -1,10 +1,10 @@
 ---
-title: Build a fraud detection pipeline with Cloudflare Pipelines and R2 SQL
+title: Build an end to end data pipeline
 summary: Learn how to create an end-to-end data pipeline using Cloudflare Pipelines, R2 Data Catalog, and R2 SQL for real-time transaction analysis.
 pcx_content_type: tutorial
 products:
   - R2
-	- R2 Data Catalog
+  - R2 Data Catalog
   - R2 SQL
 ---
 
@@ -83,11 +83,9 @@ npx wrangler r2 bucket catalog compaction enable fraud-detection-data --token $W
 
 ### Create the Pipeline stream
 
-Create a stream to receive incoming fraud detection events:
-
-```bash
-npx wrangler pipelines streams create fraud-transactions \
-  --schema '{
+First, create a schema file called `raw_transactions_schema.json` with the following `json` schema:
+```json
+{
     "fields": [
       {"name": "transaction_id", "type": "string", "required": true},
       {"name": "user_id", "type": "int64", "required": true},
@@ -98,20 +96,70 @@ npx wrangler pipelines streams create fraud-transactions \
       {"name": "is_fraud", "type": "string", "required": false},
       {"name": "ingestion_timestamp", "type": "string", "required": false}
     ]
-  }' \
+}
+```
+
+Create a stream to receive incoming fraud detection events:
+
+```bash
+npx wrangler pipelines streams create rawtransactionstream \
+  --schema-file raw_transactions_schema.json \
 	--http-enabled true \
   --http-auth true
 ```
 :::note
-After running the `stream create` command, note the **Stream Endpoint URL** from the output. This is the endpoint you'll use to send data to your pipeline.
+Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you'll use to send data to your pipeline.
 :::
+```bash
+# The http ingest endpoint from the output (see example below)
+export STREAM_ENDPOINT= #the http ingest endpoint from the output (see example below)
+```
+
+The output should look like this:
+```sh
+🌀 Creating stream 'rawtransactionstream'...
+✨ Successfully created stream 'rawtransactionstream' with id 'stream_id'.
+
+Creation Summary:
+General:
+  Name:  rawtransactionstream
+
+HTTP Ingest:
+  Enabled:         Yes
+  Authentication:  Yes
+  Endpoint:        https://stream_id.ingest.cloudflare.com
+  CORS Origins:    None
+
+Input Schema:
+┌───────────────────────┬────────┬────────────┬──────────┐
+│ Field Name            │ Type   │ Unit/Items │ Required │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ transaction_id        │ string │            │ Yes      │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ user_id               │ int64  │            │ Yes      │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ amount                │ f64    │            │ No       │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ transaction_timestamp │ string │            │ No       │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ location              │ string │            │ No       │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ merchant_category     │ string │            │ No       │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ is_fraud              │ string │            │ No       │
+├───────────────────────┼────────┼────────────┼──────────┤
+│ ingestion_timestamp   │ string │            │ No       │
+└───────────────────────┴────────┴────────────┴──────────┘
+```
+
+
 
 ### Create the data sink
 
 Create a sink that writes data to your R2 bucket as Apache Iceberg tables:
 
 ```bash
-npx wrangler pipelines sinks create fraud-data-sink \
+npx wrangler pipelines sinks create rawtransactionsink \
   --type "r2-data-catalog" \
 	--bucket "fraud-detection-data" \
 	--roll-interval 30 \
@@ -129,8 +177,8 @@ This creates a `sink` configuration that will write to the Iceberg table fraud_d
 Connect your stream to your sink with SQL:
 
 ```bash
-npx wrangler pipelines create fraud-pipeline \
-  --sql "INSERT INTO fraud-data-sink SELECT * FROM fraud-transactions"
+npx wrangler pipelines create transactionspipeline \
+  --sql "INSERT INTO rawtransactionsink SELECT * FROM rawtransactionstream"
 ```
 
 ## 5. Generate fraud detection data
@@ -143,15 +191,16 @@ import json
 import uuid
 import random
 import time
+import os
 from datetime import datetime, timezone, timedelta
 
-# Configuration
-STREAM_ENDPOINT = "https://YOUR_STREAM_ID.ingest.cloudflare.com" # From the stream you created
-API_TOKEN = "WRANGLER_R2_SQL_AUTH_TOKEN" #the same one created earlier
+# Configuration - exported from the prior steps
+STREAM_ENDPOINT = os.environ["STREAM_ENDPOINT"]# From the stream you created
+API_TOKEN = os.environ["WRANGLER_R2_SQL_AUTH_TOKEN"] #the same one created earlier
 EVENTS_TO_SEND = 1000 # Feel free to adjust this
 
 def generate_transaction():
-    """Generate some transactions with occassional fraud patterns"""
+    """Generate some random transactions with occassional fraud"""
 
     # User IDs
     high_risk_users = [1001, 1002, 1003, 1004, 1005]
@@ -160,7 +209,7 @@ def generate_transaction():
     user_id = random.choice(high_risk_users + normal_users)
     is_high_risk_user = user_id in high_risk_users
 
-    # Generate amount
+    # Generate amounts
     if random.random() < 0.05:
         amount = round(random.uniform(5000, 50000), 2)
     elif random.random() < 0.03:
@@ -169,8 +218,8 @@ def generate_transaction():
         amount = round(random.uniform(10, 500), 2)
 
     # Locations
-    normal_locations = ["NEW_YORK", "LOS_ANGELES", "CHICAGO", "MIAMI", "SEATTLE"]
-    high_risk_locations = ["UNKNOWN_LOCATION", "VPN_EXIT", "BELARUS", "NIGERIA"]
+    normal_locations = ["NEW_YORK", "LOS_ANGELES", "CHICAGO", "MIAMI", "SEATTLE", "SAN FRANCISCO"]
+    high_risk_locations = ["UNKNOWN_LOCATION", "VPN_EXIT", "MARS", "BAT_CAVE"]
 
     if is_high_risk_user and random.random() < 0.3:
         location = random.choice(high_risk_locations)
@@ -186,7 +235,7 @@ def generate_transaction():
     else:
         merchant_category = random.choice(normal_merchants)
 
-    # Determine if transaction is fraudulent based on basic risk factors
+    # Series of checks to either increase fraud score by a certain margin
     fraud_score = 0
     if amount > 2000: fraud_score += 0.4
     if amount < 1: fraud_score += 0.3
@@ -194,7 +243,7 @@ def generate_transaction():
     if merchant_category in high_risk_merchants: fraud_score += 0.3
     if is_high_risk_user: fraud_score += 0.2
 
-    # Compare the fraud score
+    # Compare the fraud scores
     is_fraud = random.random() < min(fraud_score * 0.3, 0.8)
 
     # Generate timestamps (some fraud happens at unusual hours)
@@ -239,14 +288,13 @@ def send_batch_to_stream(events, batch_size=100):
             if response.status_code in [200, 201]:
                 total_sent += len(batch)
                 fraud_count += fraud_in_batch
-                print(f"✅ Sent batch of {len(batch)} events (Total: {total_sent})")
+                print(f"Sent batch of {len(batch)} events (Total: {total_sent})")
             else:
-                print(f"❌ Failed to send batch: {response.status_code} - {response.text}")
+                print(f"Failed to send batch: {response.status_code} - {response.text}")
 
         except Exception as e:
-            print(f"❌ Error sending batch: {e}")
+            print(f"Error sending batch: {e}")
 
-        # Small delay between batches
         time.sleep(0.1)
 
     return total_sent, fraud_count
@@ -265,10 +313,10 @@ def main():
     print(f"📊 Generated {len(events)} total events ({fraud_events} fraud, {fraud_events/len(events)*100:.1f}%)")
 
     # Send to stream
-    print("📤 Sending data to Cloudflare Stream...")
+    print("Sending data to Pipeline stream...")
     sent, fraud_sent = send_batch_to_stream(events)
 
-    print(f"\n🎉 Complete!")
+    print(f"\nComplete!")
     print(f"   Events sent: {sent:,}")
     print(f"   Fraud events: {fraud_sent:,} ({fraud_sent/sent*100:.1f}%)")
     print(f"   Data is now flowing through your pipeline!")
@@ -305,8 +353,8 @@ SELECT
     is_fraud,
     transaction_timestamp
 FROM fraud_detection.transactions
-WHERE __ingest_ts > '2025-09-12T01:00:00Z'
-AND is_fruad = 'TRUE'
+WHERE __ingest_ts > '2025-09-24T01:00:00Z'
+AND is_fraud = 'TRUE'
 LIMIT 10"
 ```
 :::note
@@ -318,7 +366,7 @@ Replace `YOUR_WAREHOUSE` with your R2 Data Catalog warehouse. This in the form o
 Create a new sink that will write the filtered data to a new Apache Iceberg table in R2 Data Catalog:
 
 ```bash
-npx wrangler pipelines sink create filtered-fraud-sink \
+npx wrangler pipelines sinks create filteredfraudsink \
   --type "r2-data-catalog" \
 	--bucket "fraud-detection-data" \
 	--roll-interval 30 \
@@ -327,20 +375,20 @@ npx wrangler pipelines sink create filtered-fraud-sink \
 	--catalog-token $WRANGLER_R2_SQL_AUTH_TOKEN
 ```
 
-Now you'll create a new SQL query to process data from the original `fraud-transactions` stream and only write flagged transactions that are over the `amount` of 1000.
+Now you'll create a new SQL query to process data from the original `rawtransactionstream` stream and only write flagged transactions that are over the `amount` of 1000.
 
 ```bash
-npx wrangler pipelines create fraud-pipeline \
-  --sql "INSERT INTO filtered-fraud-sink SELECT * FROM fraud-transactions WHERE is_fraud='TRUE' and amount > 1000"
+npx wrangler pipelines create fraudpipeline \
+  --sql "INSERT INTO filteredfraudsink SELECT * FROM rawtransactionstream WHERE is_fraud='TRUE' and amount > 1000"
 ```
 
 :::note
 It may take a few minutes for the new Pipeline to fully Initialize and start processing the data. Also keep in mind the 30 second `roll-interval`
 :::
 
-Let's query our table and check the results:
+Let's query the table and check the results:
 ```bash
-npx wrangler r2 sql query "
+npx wrangler r2 sql query "YOUR_WAREHOUSE" "
 SELECT
     transaction_id,
     user_id,
@@ -350,8 +398,26 @@ SELECT
     is_fraud,
     transaction_timestamp
 FROM fraud_detection.fraud_transactions
-WHERE __ingest_ts > '2025-09-12T01:00:00Z'
 LIMIT 10"
+```
+Let's also verify that the non-fraudulent events are being filtered out:
+```bash
+npx wrangler r2 sql query "YOUR_WAREHOUSE" "
+SELECT
+    transaction_id,
+    user_id,
+    amount,
+    location,
+    merchant_category,
+    is_fraud,
+    transaction_timestamp
+FROM fraud_detection.fraud_transactions
+WHERE is_fraud = 'FALSE'
+LIMIT 10"
+```
+You should see the following output:
+```text
+Query executed successfully with no results
 ```
 
 ## Conclusion
@@ -360,5 +426,5 @@ You have successfully built an end to end data pipeline using Cloudflare's data 
 
 1. **Use R2 Data Catalog** - Leveraged Apache Iceberg tables for efficient data storage
 2. **Set up Cloudflare Pipelines** - Created streams, sinks, and pipelines for data ingestion
-3. **Generated sample data** - Created transaction data with basic fraud patterns
-4. **Query with R2 SQL** - Performed complex fraud analysis using SQL queries
+3. **Generated sample data** - Created transaction data with some basic fraud patterns
+4. **Query your tables with R2 SQL** - Access raw and processed data tables stored in R2 Data Catalog
