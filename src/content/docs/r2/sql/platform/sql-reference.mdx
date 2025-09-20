@@ -93,6 +93,7 @@ SELECT * WHERE condition [AND|OR condition ...]
 - `column_name <= value`
 - `column_name < value`
 - `column_name != value`
+- `column_name LIKE value%`
 
 #### Logical Operators
 
@@ -104,11 +105,12 @@ SELECT * WHERE condition [AND|OR condition ...]
 - **integer** \- Whole numbers
 - **float** \- Decimal numbers
 - **string** \- Text values (quoted)
+- **timestamp** - RFC3339 format (`'YYYY-DD-MMT-HH:MM:SSZ'`)
 
 ### Examples
 
 ```sql
-SELECT * FROM table_name WHERE timestamp BETWEEN '2025-01-01' AND '2025-01-02'
+SELECT * FROM table_name WHERE timestamp BETWEEN '2025-09-24T01:00:00Z' AND '2025-09-25T01:00:00Z'
 SELECT * FROM table_name WHERE status = 200
 SELECT * FROM table_name WHERE response_time > 1000
 SELECT * FROM table_name WHERE user_id IS NOT NULL
@@ -123,19 +125,21 @@ SELECT * FROM table_name WHERE (status = 404 OR status = 500) AND timestamp > '2
 ### Syntax
 
 ```sql
---Note: ORDERY BY only supports ordering by the partition key
+--Note: ORDER BY only supports ordering by the partition key
 ORDER BY partition_key [DESC]
 ```
 
-- **Default**: Ascending order (ASC)
+- **ASC**: Ascending order
 - **DESC**: Descending order
+- **Default**: partition_key DESC
+- Can contain any columns from the partition key
 
 ### Examples
 
 ```sql
-SELECT * FROM table_name WHERE ... ORDER BY partitionKey
-SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC
-SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC
+SELECT * FROM table_name WHERE ... ORDER BY paetition_key_A
+SELECT * FROM table_name WHERE ... ORDER BY partition_key_B DESC
+SELECT * FROM table_name WHERE ... ORDER BY partitionKey_A ASC
 
 ```
 
@@ -151,6 +155,7 @@ LIMIT number
 
 - **Range**: 1 to 10,000
 - **Type**: Integer only
+- **Default**: 500
 
 ### Examples
 
@@ -167,7 +172,7 @@ SELECT * FROM table_name WHERE ... LIMIT 100
 ```sql
 SELECT *
 FROM http_requests
-WHERE timestamp BETWEEN '2024-01-01' AND '2024-01-02'
+WHERE timestamp BETWEEN '2025-09-24T01:00:00Z' AND '2025-09-25T01:00:00Z'
 LIMIT 100
 ```
 
@@ -215,6 +220,8 @@ LIMIT 500
 | `integer` | Whole numbers | `1`, `42`, `-10`, `0` |
 | `float` | Decimal numbers | `1.5`, `3.14`, `-2.7`, `0.0` |
 | `string` | Text values | `'hello'`, `'GET'`, `'2024-01-01'` |
+| `boolean` | boolean values | `true`, `false` |
+| `timestamp` | RFC3339 | `'2025-09-24T01:00:00Z'` |
 
 ### Type Usage in Conditions
 
@@ -237,7 +244,7 @@ SELECT * FROM table_name WHERE country_code = 'US'
 
 ## Operator Precedence
 
-1. **Comparison operators**: `=`, `!=`, `<`, `<=`, `>`, `>=`, `BETWEEN`, `IS NULL`, `IS NOT NULL`
+1. **Comparison operators**: `=`, `!=`, `<`, `<=`, `>`, `>=`, `LIK#`, `BETWEEN`, `IS NULL`, `IS NOT NULL`
 2. **AND** (higher precedence)
 3. **OR** (lower precedence)
 

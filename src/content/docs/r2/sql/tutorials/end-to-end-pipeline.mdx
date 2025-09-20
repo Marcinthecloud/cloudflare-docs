@@ -59,7 +59,7 @@ npx wrangler login
 Create a new R2 bucket to store your fraud detection data:
 
 ```bash
-npx wrangler r2 bucket create fraud-detection-data
+npx wrangler r2 bucket create fraud-pipeline
 ```
 
 ## 3. Enable R2 Data Catalog
@@ -67,16 +67,21 @@ npx wrangler r2 bucket create fraud-detection-data
 Enable the Data Catalog feature on your bucket to use Apache Iceberg tables:
 
 ```bash
-npx wrangler r2 bucket catalog enable fraud-detection-data
+npx wrangler r2 bucket catalog enable fraud-pipeline
 ```
+
 :::note
-Make sure to save the Warehouse for use later in this guide
+Copy the warehouse (ACCOUNTID_BUCKETNAME) and paste it in the `export` below. We'll use it later in the tutorial.
 :::
 
-### Optional - Enable compaction on your R2 Data Catalog
-R2 Data Catalog can automatically compact tables for you. In production event streaming use cases, it's common to end up with many small files so it's recommended to enable compaction. Since this is a sample use case, this is optional.
 ```bash
-npx wrangler r2 bucket catalog compaction enable fraud-detection-data --token $WRANGLER_R2_SQL_AUTH_TOKEN
+export $WAREHOUSE= #Paste your warehouse here
+```
+
+### Optional - Enable compaction on your R2 Data Catalog
+R2 Data Catalog can automatically compact tables for you. In production event streaming use cases, it's common to end up with many small files, so it's recommended to enable compaction. Since this is a sample use case, this is optional.
+```bash
+npx wrangler r2 bucket catalog compaction enable fraud-pipeline --token $WRANGLER_R2_SQL_AUTH_TOKEN
 ```
 
 ## 4. Set up the pipeline infrastructure
@@ -93,8 +98,7 @@ First, create a schema file called `raw_transactions_schema.json` with the follo
       {"name": "transaction_timestamp", "type": "string", "required": false},
       {"name": "location", "type": "string", "required": false},
       {"name": "merchant_category", "type": "string", "required": false},
-      {"name": "is_fraud", "type": "string", "required": false},
-      {"name": "ingestion_timestamp", "type": "string", "required": false}
+      {"name": "is_fraud", "type": "bool", "required": false}
     ]
 }
 ```
@@ -102,10 +106,10 @@ First, create a schema file called `raw_transactions_schema.json` with the follo
 Create a stream to receive incoming fraud detection events:
 
 ```bash
-npx wrangler pipelines streams create rawtransactionstream \
+npx wrangler pipelines streams create raw_stream \
   --schema-file raw_transactions_schema.json \
 	--http-enabled true \
-  --http-auth true
+  --http-auth false
 ```
 :::note
 Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you'll use to send data to your pipeline.
@@ -117,12 +121,12 @@ export STREAM_ENDPOINT= #the http ingest endpoint from the output (see example b
 
 The output should look like this:
 ```sh
-🌀 Creating stream 'rawtransactionstream'...
-✨ Successfully created stream 'rawtransactionstream' with id 'stream_id'.
+🌀 Creating stream 'raw_stream'...
+✨ Successfully created stream 'raw_stream' with id 'stream_id'.
 
 Creation Summary:
 General:
-  Name:  rawtransactionstream
+  Name:  raw_stream
 
 HTTP Ingest:
   Enabled:         Yes
@@ -146,22 +150,18 @@ Input Schema:
 ├───────────────────────┼────────┼────────────┼──────────┤
 │ merchant_category     │ string │            │ No       │
 ├───────────────────────┼────────┼────────────┼──────────┤
-│ is_fraud              │ string │            │ No       │
-├───────────────────────┼────────┼────────────┼──────────┤
-│ ingestion_timestamp   │ string │            │ No       │
+│ is_fraud              │ bool   │            │ No       │
 └───────────────────────┴────────┴────────────┴──────────┘
 ```
-
-
 
 ### Create the data sink
 
 Create a sink that writes data to your R2 bucket as Apache Iceberg tables:
 
 ```bash
-npx wrangler pipelines sinks create rawtransactionsink \
+npx wrangler pipelines sinks create raw_sink \
   --type "r2-data-catalog" \
-	--bucket "fraud-detection-data" \
+	--bucket "fraud-pipeline" \
 	--roll-interval 30 \
 	--namespace "fraud_detection" \
 	--table "transactions" \
@@ -169,7 +169,7 @@ npx wrangler pipelines sinks create rawtransactionsink \
 ```
 
 :::note
-This creates a `sink` configuration that will write to the Iceberg table fraud_detection.transactions every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partion the table by `DAY`
+This creates a `sink` configuration that will write to the Iceberg table fraud_detection.transactions in your R2 Data Catalog every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partition the table by `DAY`
 :::
 
 ### Create the pipeline
@@ -177,8 +177,8 @@ This creates a `sink` configuration that will write to the Iceberg table fraud_d
 Connect your stream to your sink with SQL:
 
 ```bash
-npx wrangler pipelines create transactionspipeline \
-  --sql "INSERT INTO rawtransactionsink SELECT * FROM rawtransactionstream"
+npx wrangler pipelines create raw_events_pipeline \
+  --sql "INSERT INTO raw_sink SELECT * FROM raw_stream"
 ```
 
 ## 5. Generate fraud detection data
@@ -200,7 +200,7 @@ API_TOKEN = os.environ["WRANGLER_R2_SQL_AUTH_TOKEN"] #the same one created earli
 EVENTS_TO_SEND = 1000 # Feel free to adjust this
 
 def generate_transaction():
-    """Generate some random transactions with occassional fraud"""
+    """Generate some random transactions with occasional fraud"""
 
     # User IDs
     high_risk_users = [1001, 1002, 1003, 1004, 1005]
@@ -263,8 +263,7 @@ def generate_transaction():
         "transaction_timestamp": transaction_time.isoformat(),
         "location": location,
         "merchant_category": merchant_category,
-        "is_fraud": "TRUE" if is_fraud else "FALSE",
-        "ingestion_timestamp": datetime.now(timezone.utc).isoformat()
+        "is_fraud": True if is_fraud else False
     }
 
 def send_batch_to_stream(events, batch_size=100):
@@ -280,7 +279,7 @@ def send_batch_to_stream(events, batch_size=100):
 
     for i in range(0, len(events), batch_size):
         batch = events[i:i + batch_size]
-        fraud_in_batch = sum(1 for event in batch if event["is_fraud"] == "TRUE")
+        fraud_in_batch = sum(1 for event in batch if event["is_fraud"] == True)
 
         try:
             response = requests.post(STREAM_ENDPOINT, headers=headers, json=batch)
@@ -309,7 +308,7 @@ def main():
         if (i + 1) % 100 == 0:
             print(f"Generated {i + 1} events...")
 
-    fraud_events = sum(1 for event in events if event["is_fraud"] == "TRUE")
+    fraud_events = sum(1 for event in events if event["is_fraud"] == True)
     print(f"📊 Generated {len(events)} total events ({fraud_events} fraud, {fraud_events/len(events)*100:.1f}%)")
 
     # Send to stream
@@ -339,7 +338,7 @@ Now you can analyze your fraud detection data using R2 SQL. Here are some exampl
 ### View recent transactions
 
 ```bash
-npx wrangler r2 sql query "YOUR_WAREHOUSE" "
+npx wrangler r2 sql query "$WAREHOUSE" "
 SELECT
     transaction_id,
     user_id,
@@ -350,32 +349,29 @@ SELECT
     transaction_timestamp
 FROM fraud_detection.transactions
 WHERE __ingest_ts > '2025-09-24T01:00:00Z'
-AND is_fraud = 'TRUE'
+AND is_fraud = true
 LIMIT 10"
 ```
-:::note
-Replace `YOUR_WAREHOUSE` with your R2 Data Catalog warehouse. This in the form of `{YOUR_ACCOUNT_ID}_{BUCKET_NAME}`. This can be found in the dash under the settings in your bucket. Adjust the `__ingest_ts` date in the query as needed.
-:::
 
 ### Let's filter the raw transactions into a new table to highlight high-value transactions
 
 Create a new sink that will write the filtered data to a new Apache Iceberg table in R2 Data Catalog:
 
 ```bash
-npx wrangler pipelines sinks create filteredfraudsink \
+npx wrangler pipelines sinks create fraud_filter_sink \
   --type "r2-data-catalog" \
-	--bucket "fraud-detection-data" \
+	--bucket "fraud-pipeline" \
 	--roll-interval 30 \
 	--namespace "fraud_detection" \
 	--table "fraud_transactions" \
 	--catalog-token $WRANGLER_R2_SQL_AUTH_TOKEN
 ```
 
-Now you'll create a new SQL query to process data from the original `rawtransactionstream` stream and only write flagged transactions that are over the `amount` of 1000.
+Now you'll create a new SQL query to process data from the original `raw_stream` stream and only write flagged transactions that are over the `amount` of 1000.
 
 ```bash
-npx wrangler pipelines create fraudpipeline \
-  --sql "INSERT INTO filteredfraudsink SELECT * FROM rawtransactionstream WHERE is_fraud='TRUE' and amount > 1000"
+npx wrangler pipelines create fraud_events_pipeline \
+  --sql "INSERT INTO fraud_filter_sink SELECT * FROM raw_stream WHERE is_fraud=true and amount > 1000"
 ```
 
 :::note
@@ -384,7 +380,7 @@ It may take a few minutes for the new Pipeline to fully Initialize and start pro
 
 Let's query the table and check the results:
 ```bash
-npx wrangler r2 sql query "YOUR_WAREHOUSE" "
+npx wrangler r2 sql query "$WAREHOUSE" "
 SELECT
     transaction_id,
     user_id,
@@ -398,7 +394,7 @@ LIMIT 10"
 ```
 Let's also verify that the non-fraudulent events are being filtered out:
 ```bash
-npx wrangler r2 sql query "YOUR_WAREHOUSE" "
+npx wrangler r2 sql query "$WAREHOUSE" "
 SELECT
     transaction_id,
     user_id,
@@ -408,7 +404,7 @@ SELECT
     is_fraud,
     transaction_timestamp
 FROM fraud_detection.fraud_transactions
-WHERE is_fraud = 'FALSE'
+WHERE is_fraud = false
 LIMIT 10"
 ```
 You should see the following output:

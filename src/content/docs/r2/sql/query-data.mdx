@@ -1,6 +1,8 @@
 ---
 title: Query data in R2 Data Catalog
 pcx_content_type: example
+sidebar:
+  order: 3
 ---
 
 :::note
@@ -12,7 +14,7 @@ R2 SQL is currently in open beta
 - Sign up for a [Cloudflare account](https://dash.cloudflare.com/sign-up/workers-and-pages).
 - [Create an R2 bucket](/r2/buckets/create-buckets/) and [enable the data catalog](/r2/data-catalog/manage-catalogs/#enable-r2-data-catalog-on-a-bucket).
 - [Create an R2 API token](/r2/api/tokens/) with [R2, R2 SQL, and data catalog permissions](/r2/api/tokens/#permissions).
-- Tables must have a time-based partition key in order be queried by R2 SQL. Read about the current [limitations](/r2/sql/platform/limitations-best-practices) to learn more.
+- Tables must have a time-based partition key in order to be queried by R2 SQL. Read about the current [limitations](/r2/sql/platform/limitations-best-practices) to learn more.
 
 R2 SQL can currently be accessed via Wrangler commands or a REST API.
 
@@ -30,7 +32,7 @@ If this is your first time using Wrangler, make sure to login.
 npx wrangler login
 ```
 
-You'll also want to grab the **warehouse** of the your R2 Data Catalog:
+You'll also want to grab the **warehouse** of the R2 Data Catalog:
 
 ```sh
 ❯ npx wrangler r2 bucket catalog get [BUCKET_NAME]
@@ -71,7 +73,6 @@ curl -X POST \
   -H "Authorization: Bearer ${WRANGLER_R2_SQL_AUTH_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "warehouse": "your-warehouse-name",
     "query": "SELECT * FROM namespace.table_name limit 10;"
   }' | jq .
 ```

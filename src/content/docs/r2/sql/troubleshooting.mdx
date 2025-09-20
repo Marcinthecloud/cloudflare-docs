@@ -4,7 +4,7 @@ pcx_content_type: concept
 tags:
   - SQL
 sidebar:
-  order: 5
+  order: 7
 ---
 
 # R2 SQL Troubleshooting Guide
@@ -23,12 +23,12 @@ This guide covers potential errors and limitations you may encounter when using 
 
 ```sql
 -- Invalid - Missing FROM clause
-SELECT user_id WHERE status = 200
+SELECT user_id WHERE status = 200;
 
 -- Valid
 SELECT user_id
 FROM http_requests
-WHERE status = 200 AND timestamp BETWEEN '2024-01-01' AND '2024-01-02'
+WHERE status = 200 AND timestamp BETWEEN '2025-09-24T01:00:00Z' AND '2025-09-25T01:00:00Z';
 ```
 
 **Solution**: Always include `FROM` in your queries.
@@ -47,7 +47,7 @@ WHERE status = 200 AND timestamp BETWEEN '2024-01-01' AND '2024-01-02'
 
 ```sql
 -- Invalid - Aggregate functions not supported
-SELECT COUNT(*) FROM events WHERE timestamp > '2024-01-01'
+SELECT COUNT(*) FROM events WHERE timestamp > '2025-09-24T01:00:00Z'
 SELECT AVG(response_time) FROM http_requests WHERE status = 200
 SELECT MAX(timestamp) FROM logs WHERE user_id = '123'
 ```
@@ -260,7 +260,7 @@ SELECT * FROM events WHERE timestamp > '2024-01-01T10:30:00Z' ORDER BY timestamp
 ### Dynamic Schema Changes
 
 <div className="error-box">
-**Error**: `Sinvalid SQL: only top-level SELECT clause is supported`
+**Error**: `invalid SQL: only top-level SELECT clause is supported`
 </div>
 
 **Problem**: Attempting to modify table schema or reference non-existent columns.

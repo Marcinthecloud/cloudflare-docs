@@ -21,20 +21,20 @@ R2 SQL is designed for querying **partitioned** Apache Iceberg tables in your R2
 
 | Feature | Supported | Notes |
 | :---- | :---- | :---- |
-| Basic SELECT | Yes | Columns, \*, aliases |
-| SQL Functions | No | No COUNT, AVG, etc. |
-| Single table FROM | Yes | With aliasing |
+| Basic SELECT | Yes | Columns, \* |
+| Aggregation functions | No | No COUNT, AVG, etc. |
+| Single table FROM | Yes | Note, aliasing not supported|
+| WHERE clause | Yes | Filters, comparisons, equality, etc |
 | JOINs | No | No table joins |
-| WHERE with time | Yes | Required |
 | Array filtering | No | No array type support |
 | JSON filtering | No | No nested object queries |
 | Simple LIMIT | Yes | 1-10,000 range |
-| ORDER BY | Yes | Only on partition key |
+| ORDER BY | Yes | Any columns of the partition key only|
 | GROUP BY | No | Not supported |
 
 ## Supported SQL Clauses
 
-R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, and `LIMIT`. All other SQL clauses are not supported at the moment. New features will release often, keep an eye on this page and the changelog\[LINK TO CHANGE LOG\] for the latest.
+R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, and `LIMIT`. All other SQL clauses are not supported at the moment. New features will be released in the future, keep an eye on this page and the changelog\[LINK TO CHANGE LOG\] for the latest.
 
 ---
 
@@ -50,7 +50,7 @@ R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, and `LI
 - **No JSON field querying**: Cannot query individual fields from JSON objects
 - **No SQL functions**: Functions like `AVG()`, `COUNT()`, `MAX()`, `MIN()`, quantiles are not supported
 - **No synthetic data**: Cannot create synthetic columns like `SELECT 1 AS what, "hello" AS greeting`
-- **Field aliasing**: `SELECT field AS another_name`
+- **No field aliasing**: `SELECT field AS another_name`
 
 
 ### Examples
@@ -85,7 +85,7 @@ SELECT 1 AS synthetic_column
 - **No schema evolution**: Schema cannot be altered (no ALTER TABLE, migrations)
 - **Immutable datasets**: No UPDATE or DELETE operations allowed
 - **Fully defined schema**: Dynamic or union-type fields are not supported
-- **Table aliasing**: `SELECT * FROM table_name AS alias`
+- **No table aliasing**: `SELECT * FROM table_name AS alias`
 
 ### Examples
 
@@ -105,13 +105,12 @@ SELECT * FROM (SELECT * FROM events WHERE status = 200)
 
 ### Supported Features
 
-- **Time filtering**: Queries should include a time filter
-- **Simple type filtering**: Supports `string`, `boolean`, and `number` types
+- **Simple type filtering**: Supports `string`, `boolean`, `number` types, and timestamps expressed as RFC3339
 - **Boolean logic**: Supports `AND`, `OR`, `NOT` operators
 - **Comparison operators**: `>`, `>=`, `=`, `<`, `<=`, `!=`
 - **Grouped conditions**: `WHERE col_a="hello" AND (col_b>5 OR col_c != 3)`
-- **Pattern mating:** `WHERE col_a LIKE ‘%hello w%’`
-- **NULL Handling:** `WHERE col_a IS NOT NULL`
+- **Pattern matching:** `WHERE col_a LIKE ‘hello w%’` (prefix matching only)
+- **NULL Handling :** `WHERE col_a IS NOT NULL` (`IS`/`IS NOT`)
 
 ### Limitations
 
@@ -209,4 +208,3 @@ The following SQL clauses are **not supported**:
 3. **Structure your data** to avoid nested JSON objects if you need to filter on those fields
 
 ---
-
