@@ -1,0 +1,133 @@
+---
+title: Query data in R2 Data Catalog
+pcx_content_type: configuration
+description: Understand how to query data with R2 SQL
+sidebar:
+  order: 3
+---
+import {
+	Render,
+	LinkCard,
+} from "~/components";
+
+:::note
+R2 SQL is currently in open beta
+:::
+
+Learn how to:
+- Create an API key with the necessary permissions.
+- Query data with R2 SQL.
+
+R2 SQL can currently be accessed via Wrangler commands or a REST API.
+
+## Create an API key with the right permissions
+
+To query Apache Iceberg tables in R2 Data Catalog, you must provide a Cloudflare API token with R2 SQL, R2 Data Catalog, and R2 storage permissions.
+
+### Create API token in the dashboard
+
+Create an [API token](https://dash.cloudflare.com/profile/api-tokens) with:
+
+- Access to R2 Data Catalog (**minimum**: read-only)
+- Access to R2 storage (**minimum**: read-only)
+- Access to R2 SQL (**minimum**: read-only)
+
+Wrangler now supports the environment variable `WRANGLER_R2_SQL_AUTH_TOKEN` which you can `export` your token as.
+
+### Create API token via API
+
+To create an API token programmatically for use with R2 SQL, you'll need to specify  R2 SQL, R2 Data Catalog, and R2 storage permission groups in your [Access Policy](/r2/api/tokens/#access-policy).
+
+#### Example Access Policy
+
+```json
+[
+	{
+		"id": "f267e341f3dd4697bd3b9f71dd96247f",
+		"effect": "allow",
+		"resources": {
+			"com.cloudflare.edge.r2.bucket.4793d734c0b8e484dfc37ec392b5fa8a_default_my-bucket": "*",
+			"com.cloudflare.edge.r2.bucket.4793d734c0b8e484dfc37ec392b5fa8a_eu_my-eu-bucket": "*"
+		},
+		"permission_groups": [
+			{
+				"id": "45db74139a62490b9b60eb7c4f34994b",
+				"name": "Workers R2 Data Catalog Read"
+			},
+			{
+				"id": "6a018a9f2fc74eb6b293b0c548f38b39",
+				"name": "Workers R2 Storage Bucket Item Read"
+			},
+			{
+				"id": "f45430d92e2b4a6cb9f94f2594c141b8",
+        "name": "Workers R2 SQL Read"
+			}
+		]
+	}
+]
+```
+
+
+## Query data via Wrangler
+
+Export your R2 API token as an environment variable:
+
+```bash
+export WRANGLER_R2_SQL_AUTH_TOKEN=your_token_here
+```
+
+If this is your first time using Wrangler, make sure to login.
+```bash
+npx wrangler login
+```
+
+:::note
+You'll want to copy the **warehouse** of the R2 Data Catalog:
+:::
+
+```sh
+❯ npx wrangler r2 bucket catalog get [BUCKET_NAME]
+
+ ⛅️ wrangler 4.38.0
+────────────────────────────────────────────────────────────────────────────
+▲ [WARNING] 🚧 `wrangler r2 bucket catalog get` is an open-beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose
+
+
+Catalog URI:  https://catalog.cloudflarestorage.com/[ACCOUNT_ID]/[BUCKET_NAME]
+Warehouse:    [ACCOUNT_ID]_[BUCKET_NAME]
+Status:       active
+```
+
+To query R2 SQL with Wrangler, simply run:
+
+```sh
+npx wrangler r2 sql query "YOUR_WAREHOUSE" "SELECT * FROM namespace.table_name limit 10;"
+```
+For a full list of supported sql commands, check out the [R2 SQL reference page](/r2-sql/reference/sql-reference).
+
+
+## REST API
+Below is an example of using R2 SQL via the REST endpoint:
+
+```bash
+curl -X POST \
+  "https://api.sql.cloudflarestorage.com/api/v1/accounts/{ACCOUNT_ID}/r2-sql/query/{BUCKET_NAME}" \
+  -H "Authorization: Bearer ${WRANGLER_R2_SQL_AUTH_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT * FROM namespace.table_name limit 10;"
+  }'
+```
+
+Learn more:
+<LinkCard
+	title="Manage R2 Data Catalogs"
+	href="/r2/data-catalog/manage-catalogs/"
+	description="Enable or disable R2 Data Catalog on your bucket, retrieve configuration details, and authenticate your Iceberg engine."
+/>
+
+<LinkCard
+	title="Build an end to end data pipeline"
+	href="/r2-sql/tutorials/end-to-end-pipeline"
+	description="Detailed tutorial for setting up a simple fruad detection data pipeline and generate events for it in Python."
+/>
