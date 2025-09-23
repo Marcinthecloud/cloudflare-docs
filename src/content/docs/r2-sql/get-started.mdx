@@ -28,7 +28,7 @@ This guide will instruct you through:
 
 1. Sign up for a [Cloudflare account](https://dash.cloudflare.com/sign-up).
 2. Install [Node.js](https://nodejs.org/en/).
-3. Install [Wrangler](/workers/wranger/install-and-update).
+3. Install [Wrangler](/workers/wrangler/install-and-update).
 
 :::note[Node.js version manager]
 Use a Node version manager like [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) to avoid permission issues and change Node.js versions.
@@ -47,13 +47,13 @@ You will need API tokens to interact with Cloudflare services.
 
 2. Select **Manage API tokens**.
 
-3. Select **Create API token**.
+3. Select **Create User API token**.
 
 4. Select the **R2 Token** text to edit your API token name.
 
 5. Under **Permissions**, choose the **Admin Read & Write** permission.
 
-6. Select **Create API Token**.
+6. Select **Create User API Token**.
 
 7. Note the **Token value**.
 
@@ -99,8 +99,6 @@ Create an R2 bucket:
 </TabItem>
 </Tabs>
 
-## 3. Enable R2 Data Catalog
-
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
 
@@ -138,12 +136,12 @@ Copy the warehouse (ACCOUNTID_BUCKETNAME) and paste it in the `export` below. We
 export $WAREHOUSE= #Paste your warehouse here
 ```
 
-## 4. Create the data Pipeline
+## 3. Create the data Pipeline
 
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
 
-### 4.1. Create the Pipeline Stream
+### 3.1. Create the Pipeline Stream
 
 First, create a schema file called `demo_schema.json` with the following `json` schema:
 
@@ -201,7 +199,7 @@ Input Schema:
 └────────────┴────────┴────────────┴──────────┘
 ```
 
-### 4.2. Create the Pipeline Sink
+### 3.2. Create the Pipeline Sink
 
 Create a sink that writes data to your R2 bucket as Apache Iceberg tables:
 
@@ -219,7 +217,7 @@ npx wrangler pipelines sinks create demo_sink \
 This creates a `sink` configuration that will write to the Iceberg table `demo.first_table` in your R2 Data Catalog every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partition the table by `DAY`.
 :::
 
-### 4.3. Create the Pipeline
+### 3.3. Create the Pipeline
 
 Pipelines are SQL statements that reads data from the stream, does some work, and writes it to the sink.
 
@@ -295,7 +293,7 @@ export STREAM_ENDPOINT= #the http ingest endpoint from the output (see example b
 </Tabs>
 
 
-## 5. Send some data
+## 4. Send some data
 
 Next, send some events to our stream:
 
@@ -327,7 +325,7 @@ curl -X POST "$STREAM_ENDPOINT" \
 
 This will send 4 events in one `POST`. Since our Pipeline is filtering out records with `numbers` less than 5, `user_id` `3` and `4` should not appear in the table. Feel free to change values and send more events.
 
-## 6. Query the table with R2 SQL
+## 5. Query the table with R2 SQL
 
 After you have sent your events to the stream, it will take about 30 seconds for the data to show in the table, since that is what we configured our `roll interval` to be in the Sink.
 

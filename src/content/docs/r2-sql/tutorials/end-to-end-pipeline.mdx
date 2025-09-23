@@ -110,12 +110,10 @@ Create an R2 bucket:
 </TabItem>
 </Tabs>
 
-## 3. Enable R2 Data Catalog
+Enable the catalog on your R2 bucket:
 
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
-
-Enable the catalog on your R2 bucket:
 
 ```bash
 npx wrangler r2 bucket catalog enable fraud-pipeline
@@ -177,9 +175,9 @@ npx wrangler r2 bucket catalog compaction enable fraud-pipeline --token $WRANGLE
 </TabItem>
 </Tabs>
 
-## 4. Set up the pipeline infrastructure
+## 3. Set up the pipeline infrastructure
 
-### 4.1. Create the Pipeline stream
+### 3.1. Create the Pipeline stream
 
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
@@ -191,7 +189,7 @@ First, create a schema file called `raw_transactions_schema.json` with the follo
     "fields": [
       {"name": "transaction_id", "type": "string", "required": true},
       {"name": "user_id", "type": "int64", "required": true},
-      {"name": "amount", "type": "f64", "required": false},
+      {"name": "amount", "type": "float64", "required": false},
       {"name": "transaction_timestamp", "type": "string", "required": false},
       {"name": "location", "type": "string", "required": false},
       {"name": "merchant_category", "type": "string", "required": false},
@@ -242,7 +240,7 @@ Input Schema:
 ├───────────────────────┼────────┼────────────┼──────────┤
 │ user_id               │ int64  │            │ Yes      │
 ├───────────────────────┼────────┼────────────┼──────────┤
-│ amount                │ f64    │            │ No       │
+│ amount                │float64 │            │ No       │
 ├───────────────────────┼────────┼────────────┼──────────┤
 │ transaction_timestamp │ string │            │ No       │
 ├───────────────────────┼────────┼────────────┼──────────┤
@@ -254,7 +252,7 @@ Input Schema:
 └───────────────────────┴────────┴────────────┴──────────┘
 ```
 
-### 4.2. Create the data sink
+### 3.2. Create the data sink
 
 Create a sink that writes data to your R2 bucket as Apache Iceberg tables:
 
@@ -272,7 +270,7 @@ npx wrangler pipelines sinks create raw_events_sink \
 This creates a `sink` configuration that will write to the Iceberg table `fraud_detection.transactions` in your R2 Data Catalog every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partition the table by `DAY`.
 :::
 
-### 4.3. Create the pipeline
+### 3.3. Create the pipeline
 
 Connect your stream to your sink with SQL:
 
@@ -304,7 +302,7 @@ npx wrangler pipelines create raw_events_pipeline \
         "fields": [
             {"name": "transaction_id", "type": "string", "required": true},
             {"name": "user_id", "type": "int64", "required": true},
-            {"name": "amount", "type": "f64", "required": false},
+            {"name": "amount", "type": "float64", "required": false},
             {"name": "transaction_timestamp", "type": "string", "required": false},
             {"name": "location", "type": "string", "required": false},
             {"name": "merchant_category", "type": "string", "required": false},
@@ -341,7 +339,7 @@ npx wrangler pipelines create raw_events_pipeline \
 </TabItem>
 </Tabs>
 
-## 5. Generate fraud detection data
+## 4. Generate sample fraud detection data
 
 Create a Python script to generate realistic transaction data with fraud patterns:
 
@@ -491,11 +489,11 @@ pip install requests
 python fraud_data_generator.py
 ```
 
-## 6. Query your fraud data with R2 SQL
+## 5. Query the data with R2 SQL
 
 Now you can analyze your fraud detection data using R2 SQL. Here are some example queries:
 
-### 6.1. View recent transactions
+### 5.1. View recent transactions
 
 ```bash
 npx wrangler r2 sql query "$WAREHOUSE" "
@@ -513,7 +511,7 @@ AND is_fraud = true
 LIMIT 10"
 ```
 
-### 6.2. Filter the raw transactions into a new table to highlight high-value transactions
+### 5.2. Filter the raw transactions into a new table to highlight high-value transactions
 
 Create a new sink that will write the filtered data to a new Apache Iceberg table in R2 Data Catalog:
 

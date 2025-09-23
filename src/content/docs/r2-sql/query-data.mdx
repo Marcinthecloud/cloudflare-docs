@@ -8,6 +8,9 @@ sidebar:
 import {
 	Render,
 	LinkCard,
+	Tabs,
+	TabItem,
+	Steps
 } from "~/components";
 
 :::note
@@ -24,8 +27,8 @@ R2 SQL can currently be accessed via Wrangler commands or a REST API.
 
 To query Apache Iceberg tables in R2 Data Catalog, you must provide a Cloudflare API token with R2 SQL, R2 Data Catalog, and R2 storage permissions.
 
-### Create API token in the dashboard
-
+<Tabs syncKey='CLIvDash'>
+<TabItem label='Dashboard'>
 Create an [API token](https://dash.cloudflare.com/profile/api-tokens) with:
 
 - Access to R2 Data Catalog (**minimum**: read-only)
@@ -34,8 +37,8 @@ Create an [API token](https://dash.cloudflare.com/profile/api-tokens) with:
 
 Wrangler now supports the environment variable `WRANGLER_R2_SQL_AUTH_TOKEN` which you can use to `export` your token.
 
-### Create API token via API
-
+</TabItem>
+<TabItem label='Via API'>
 To create an API token programmatically for use with R2 SQL, you will need to specify  R2 SQL, R2 Data Catalog, and R2 storage permission groups in your [Access Policy](/r2/api/tokens/#access-policy).
 
 #### Example Access Policy
@@ -66,7 +69,8 @@ To create an API token programmatically for use with R2 SQL, you will need to sp
 	}
 ]
 ```
-
+</TabItem>
+</Tabs>
 
 ## Query data via Wrangler
 
