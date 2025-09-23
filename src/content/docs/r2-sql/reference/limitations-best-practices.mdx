@@ -33,7 +33,7 @@ R2 SQL is designed for querying **partitioned** Apache Iceberg tables in your R2
 
 ## Supported SQL Clauses
 
-R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, `ORDER BY`, and `LIMIT`. All other SQL clauses are not supported at the moment. New features will be released in the future, keep an eye on this page and the changelog\[LINK TO CHANGE LOG\] for the latest.
+R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, `ORDER BY`, and `LIMIT`. All other SQL clauses are not supported at the moment. New features will be released in the future, keep an eye on this page for the latest.
 
 ---
 
@@ -56,14 +56,14 @@ R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, `ORDER 
 
 ```sql
 -- Valid
-SELECT timestamp, user_id, status
-SELECT *
+SELECT timestamp, user_id, status FROM my_table;
+SELECT * FROM my_table;
 
 -- Invalid
-SELECT user_id AS uid, timestamp AS ts
-SELECT COUNT(*) FROM events
-SELECT json_field.property FROM table
-SELECT 1 AS synthetic_column
+SELECT user_id AS uid, timestamp AS ts FROM my_table;
+SELECT COUNT(*) FROM events FROM FROM my_table;
+SELECT json_field.property FROM my_table;
+SELECT 1 AS synthetic_column FROM my_table;
 ```
 
 ---
@@ -128,7 +128,6 @@ SELECT * FROM logs WHERE status = 200 AND user_type = 'premium'
 SELECT * FROM requests WHERE (method = 'GET' OR method = 'POST') AND response_time < 1000
 
 --Invalid
-SELECT * FROM events -- Missing time filter
 SELECT * FROM logs WHERE tags[0] = 'error' -- Array filtering
 SELECT * FROM requests WHERE metadata.user_id = '123' -- JSON field filtering
 SELECT * FROM events WHERE col_a = col_b -- Column comparison
@@ -141,8 +140,8 @@ SELECT * FROM logs WHERE response_time + latency > 5000 -- Arithmetic
 
 ### Supported Features
 
-- **ASC**: Ascending order (Default)
-- **DESC**: Descending order
+- **ASC**: Ascending order
+- **DESC**: Descending order (Default, on full partition key)
 
 ### Limitations
 
@@ -152,7 +151,6 @@ SELECT * FROM logs WHERE response_time + latency > 5000 -- Arithmetic
 
 ```sql
 SELECT * FROM table_name WHERE ... ORDER BY partitionKey
-SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC
 SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC
 ```
 
@@ -175,7 +173,7 @@ SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC
 
 ```sql
 -- Valid
-SELECT * FROM events WHERE ... LIMIT 100
+SELECT * FROM events LIMIT 100
 SELECT * FROM logs WHERE ... LIMIT 10000
 
 -- Invalid

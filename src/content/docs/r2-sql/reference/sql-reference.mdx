@@ -64,11 +64,6 @@ SELECT timestamp, user_id, response_code FROM table_name
 SELECT * FROM table_name
 ```
 
-### Examples
-
-```sql
-SELECT column_name FROM table_name
-```
 
 ---
 
@@ -89,14 +84,14 @@ SELECT * WHERE condition [AND|OR condition ...]
 
 #### Value Comparisons
 
-- `column_name BETWEEN value AND value`
+- `column_name BETWEEN value' AND 'value`
 - `column_name = value`
 - `column_name >= value`
 - `column_name > value`
 - `column_name <= value`
 - `column_name < value`
 - `column_name != value`
-- `column_name LIKE value%`
+- `column_name LIKE 'value%'`
 
 #### Logical Operators
 
@@ -109,6 +104,8 @@ SELECT * WHERE condition [AND|OR condition ...]
 - **float** \- Decimal numbers
 - **string** \- Text values (quoted)
 - **timestamp** - RFC3339 format (`'YYYY-DD-MMT-HH:MM:SSZ'`)
+- **date** - Date32/Data64 expressed as a string (`'YYYY-MM-DD'`)
+- **boolean** - Explicitly valued (true, false)
 
 ### Examples
 
@@ -247,7 +244,7 @@ SELECT * FROM table_name WHERE country_code = 'US'
 
 ## Operator Precedence
 
-1. **Comparison operators**: `=`, `!=`, `<`, `<=`, `>`, `>=`, `LIK#`, `BETWEEN`, `IS NULL`, `IS NOT NULL`
+1. **Comparison operators**: `=`, `!=`, `<`, `<=`, `>`, `>=`, `LIKE`, `BETWEEN`, `IS NULL`, `IS NOT NULL`
 2. **AND** (higher precedence)
 3. **OR** (lower precedence)
 

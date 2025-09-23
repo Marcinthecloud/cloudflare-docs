@@ -14,7 +14,7 @@ This guide covers potential errors and limitations you may encounter when using 
 ### Missing Required Clauses
 
 <div className="error-box">
-**Error**: `expected exactly 1 table in `FROM` clause`
+**Error**: `expected exactly 1 table in FROM clause`
 </div>
 
 **Problem**: R2 SQL requires specific clauses in your query.
@@ -75,7 +75,7 @@ SELECT json_field FROM logs
 ### Synthetic Data
 
 <div className="error-box">
-**Error**: `aliases (`AS`) are not supported`
+**Error**: `aliases (AS) are not supported`
 </div>
 
 **Problem**: Cannot create synthetic columns with literal values.
@@ -120,7 +120,7 @@ SELECT * FROM table2 WHERE id IN ('id1', 'id2', 'id3')
 ### Subqueries
 
 <div className="error-box">
-**Error**: `only table name is supported in `FROM` clause`
+**Error**: `only table name is supported in FROM clause`
 </div>
 
 **Problem**: Cannot use subqueries in FROM clause.
