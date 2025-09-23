@@ -10,15 +10,13 @@ products:
 ---
 
 import {
-	Render,
-	Steps,
-	Tabs,
-	TabItem,
-	DashButton,
-	LinkCard,
+  Render,
+  Steps,
+  Tabs,
+  TabItem,
+  DashButton,
+  LinkCard,
 } from "~/components";
-
-# Build an end to end data pipeline with the Cloudflare Data Platform
 
 In this tutorial, you will learn how to build a complete data pipeline using Cloudflare Pipelines, R2 Data Catalog, and R2 SQL. This also includes a sample Python script that creates and sends financial transaction data to your Pipeline that can be queried by R2 SQL or any Apache Iceberg-compatible query engine.
 
@@ -35,16 +33,19 @@ This tutorial demonstrates how to:
 3. Install [Python 3.8+](https://python.org) for the data generation script.
 
 :::note[Node.js version manager]
-Use a Node version manager like [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) to avoid permission issues and change Node.js versions. Wrangler requires a Node version of 16.17.0 or later.
+Use a Node version manager like [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) to avoid permission issues and change Node.js versions.
+
+Wrangler requires a Node version of 16.17.0 or later.
 :::
 
 ## 1. Set up authentication
 
-You'll need API tokens to interact with Cloudflare services.
+You will need API tokens to interact with Cloudflare services.
 
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **API tokens** page.
+
    <DashButton url="/?to=/:account/api-tokens" />
 
 2. Select **Create Token**.
@@ -59,13 +60,13 @@ You'll need API tokens to interact with Cloudflare services.
     - **Workers R2 SQL** with Read permissions
     - **Workers R2 Storage** with Read and Edit permissions
 
-6. Optionally add a TTL to this token
+6. Optionally, add a TTL to this token.
 
 7. Select **Continue to summary**.
 
 8. Click **Create Token**
 
-8. Note the **Token value**.
+9. Note the **Token value**.
 
 </Steps>
 
@@ -75,7 +76,8 @@ Export your new token as an environment variable:
 export WRANGLER_R2_SQL_AUTH_TOKEN= #paste your token here
 ```
 
-If this is your first time using Wrangler, make sure to login.
+If this is your first time using Wrangler, make sure to log in.
+
 ```bash
 npx wrangler login
 ```
@@ -87,27 +89,28 @@ npx wrangler login
 
 Create an R2 bucket:
 
-	```bash
-	npx wrangler r2 bucket create fraud-pipeline
-	```
+  ```bash
+  npx wrangler r2 bucket create fraud-pipeline
+  ```
 
 </TabItem>
 <TabItem label='Dashboard'>
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
    <DashButton url="/?to=/:account/r2/overview" />
 
 2. Select **Create bucket**.
 
-3. Enter the bucket name: fraud-pipeline
+3. Enter the bucket name: `fraud-pipeline`
 
 4. Select **Create bucket**.
 </Steps>
 </TabItem>
 </Tabs>
 
-## 2. Enable R2 Data Catalog
+## 3. Enable R2 Data Catalog
 
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
@@ -125,9 +128,10 @@ When you run this command, take note of the "Warehouse" and "Catalog URI". You w
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
    <DashButton url="/?to=/:account/r2/overview" />
 
-2. Select the bucket: fraud-pipeline.
+2. Select the bucket: `fraud-pipeline`.
 
 3. Switch to the **Settings** tab, scroll down to **R2 Data Catalog**, and select **Enable**.
 
@@ -138,15 +142,17 @@ When you run this command, take note of the "Warehouse" and "Catalog URI". You w
 
 
 :::note
-Copy the warehouse (ACCOUNTID_BUCKETNAME) and paste it in the `export` below. We'll use it later in the tutorial.
+Copy the `warehouse` (ACCOUNTID_BUCKETNAME) and paste it in the `export` below. We will use it later in the tutorial.
 :::
 
 ```bash
 export $WAREHOUSE= #Paste your warehouse here
 ```
 
-### Optional - Enable compaction on your R2 Data Catalog
-R2 Data Catalog can automatically compact tables for you. In production event streaming use cases, it's common to end up with many small files, so it's recommended to enable compaction. Since this is a sample use case, this is optional.
+### (Optional) Enable compaction on your R2 Data Catalog
+
+R2 Data Catalog can automatically compact tables for you. In production event streaming use cases, it is common to end up with many small files, so it is recommended to enable compaction. Since the tutorial only demonstrates a sample use case, this step is optional.
+
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
 
@@ -159,9 +165,10 @@ npx wrangler r2 bucket catalog compaction enable fraud-pipeline --token $WRANGLE
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
    <DashButton url="/?to=/:account/r2/overview" />
 
-2. Select the bucket: fraud-pipeline.
+2. Select the bucket: `fraud-pipeline`.
 
 3. Switch to the **Settings** tab, scroll down to **R2 Data Catalog**, click on edit icon, and select **Enable**.
 
@@ -172,10 +179,13 @@ npx wrangler r2 bucket catalog compaction enable fraud-pipeline --token $WRANGLE
 
 ## 4. Set up the pipeline infrastructure
 
-### Create the Pipeline stream
+### 4.1. Create the Pipeline stream
+
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
+
 First, create a schema file called `raw_transactions_schema.json` with the following `json` schema:
+
 ```json
 {
     "fields": [
@@ -195,18 +205,21 @@ Create a stream to receive incoming fraud detection events:
 ```bash
 npx wrangler pipelines streams create raw_events_stream \
   --schema-file raw_transactions_schema.json \
-	--http-enabled true \
+  --http-enabled true \
   --http-auth false
 ```
+
 :::note
-Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you'll use to send data to your pipeline.
+Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you will use to send data to your pipeline.
 :::
+
 ```bash
 # The http ingest endpoint from the output (see example below)
 export STREAM_ENDPOINT= #the http ingest endpoint from the output (see example below)
 ```
 
 The output should look like this:
+
 ```sh
 🌀 Creating stream 'raw_events_stream'...
 ✨ Successfully created stream 'raw_events_stream' with id 'stream_id'.
@@ -241,25 +254,25 @@ Input Schema:
 └───────────────────────┴────────┴────────────┴──────────┘
 ```
 
-### Create the data sink
+### 4.2. Create the data sink
 
 Create a sink that writes data to your R2 bucket as Apache Iceberg tables:
 
 ```bash
 npx wrangler pipelines sinks create raw_events_sink \
   --type "r2-data-catalog" \
-	--bucket "fraud-pipeline" \
-	--roll-interval 30 \
-	--namespace "fraud_detection" \
-	--table "transactions" \
-	--catalog-token $WRANGLER_R2_SQL_AUTH_TOKEN
+  --bucket "fraud-pipeline" \
+  --roll-interval 30 \
+  --namespace "fraud_detection" \
+  --table "transactions" \
+  --catalog-token $WRANGLER_R2_SQL_AUTH_TOKEN
 ```
 
 :::note
-This creates a `sink` configuration that will write to the Iceberg table fraud_detection.transactions in your R2 Data Catalog every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partition the table by `DAY`
+This creates a `sink` configuration that will write to the Iceberg table `fraud_detection.transactions` in your R2 Data Catalog every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partition the table by `DAY`.
 :::
 
-### Create the pipeline
+### 4.3. Create the pipeline
 
 Connect your stream to your sink with SQL:
 
@@ -267,10 +280,12 @@ Connect your stream to your sink with SQL:
 npx wrangler pipelines create raw_events_pipeline \
   --sql "INSERT INTO raw_events_sink SELECT * FROM raw_events_stream"
 ```
+
 </TabItem>
 <TabItem label='Dashboard'>
 <Steps>
 1. In the Cloudflare dashboard, go to **Pipelines** > **Pipelines**.
+
    <DashButton url="/?to=/:account/pipelines" />
 
 2. Select **Create Pipeline**.
@@ -285,7 +300,7 @@ npx wrangler pipelines create raw_events_pipeline \
    - Select **JSON editor**
    - Copy in the schema:
       ```json
-	  {
+      {
         "fields": [
             {"name": "transaction_id", "type": "string", "required": true},
             {"name": "user_id", "type": "int64", "required": true},
@@ -295,8 +310,8 @@ npx wrangler pipelines create raw_events_pipeline \
             {"name": "merchant_category", "type": "string", "required": false},
             {"name": "is_fraud", "type": "bool", "required": false}
         ]
-	  }
-		```
+     }
+      ```
 
    - Select **Next**
 
@@ -480,7 +495,7 @@ python fraud_data_generator.py
 
 Now you can analyze your fraud detection data using R2 SQL. Here are some example queries:
 
-### View recent transactions
+### 6.1. View recent transactions
 
 ```bash
 npx wrangler r2 sql query "$WAREHOUSE" "
@@ -498,21 +513,21 @@ AND is_fraud = true
 LIMIT 10"
 ```
 
-### Let's filter the raw transactions into a new table to highlight high-value transactions
+### 6.2. Filter the raw transactions into a new table to highlight high-value transactions
 
 Create a new sink that will write the filtered data to a new Apache Iceberg table in R2 Data Catalog:
 
 ```bash
 npx wrangler pipelines sinks create fraud_filter_sink \
   --type "r2-data-catalog" \
-	--bucket "fraud-pipeline" \
-	--roll-interval 30 \
-	--namespace "fraud_detection" \
-	--table "fraud_transactions" \
-	--catalog-token $WRANGLER_R2_SQL_AUTH_TOKEN
+  --bucket "fraud-pipeline" \
+  --roll-interval 30 \
+  --namespace "fraud_detection" \
+  --table "fraud_transactions" \
+  --catalog-token $WRANGLER_R2_SQL_AUTH_TOKEN
 ```
 
-Now you'll create a new SQL query to process data from the original `raw_events_stream` stream and only write flagged transactions that are over the `amount` of 1000.
+Now you will create a new SQL query to process data from the original `raw_events_stream` stream and only write flagged transactions that are over the `amount` of 1,000.
 
 ```bash
 npx wrangler pipelines create fraud_events_pipeline \
@@ -520,10 +535,11 @@ npx wrangler pipelines create fraud_events_pipeline \
 ```
 
 :::note
-It may take a few minutes for the new Pipeline to fully Initialize and start processing the data. Also keep in mind the 30 second `roll-interval`
+It may take a few minutes for the new Pipeline to fully Initialize and start processing the data. Also keep in mind the 30 second `roll-interval`.
 :::
 
-Let's query the table and check the results:
+Query the table and check the results:
+
 ```bash
 npx wrangler r2 sql query "$WAREHOUSE" "
 SELECT
@@ -537,7 +553,9 @@ SELECT
 FROM fraud_detection.fraud_transactions
 LIMIT 10"
 ```
-Let's also verify that the non-fraudulent events are being filtered out:
+
+Also verify that the non-fraudulent events are being filtered out:
+
 ```bash
 npx wrangler r2 sql query "$WAREHOUSE" "
 SELECT
@@ -553,15 +571,16 @@ WHERE is_fraud = false
 LIMIT 10"
 ```
 You should see the following output:
+
 ```text
 Query executed successfully with no results
 ```
 
 ## Conclusion
 
-You have successfully built an end to end data pipeline using Cloudflare's data platform. Through this tutorial, you've learned to:
+You have successfully built an end to end data pipeline using Cloudflare's data platform. Through this tutorial, you hve learned to:
 
-1. **Use R2 Data Catalog** - Leveraged Apache Iceberg tables for efficient data storage
-2. **Set up Cloudflare Pipelines** - Created streams, sinks, and pipelines for data ingestion
-3. **Generated sample data** - Created transaction data with some basic fraud patterns
-4. **Query your tables with R2 SQL** - Access raw and processed data tables stored in R2 Data Catalog
+1. **Use R2 Data Catalog**: Leveraged Apache Iceberg tables for efficient data storage
+2. **Set up Cloudflare Pipelines**: Created streams, sinks, and pipelines for data ingestion
+3. **Generated sample data**: Created transaction data with some basic fraud patterns
+4. **Query your tables with R2 SQL**: Access raw and processed data tables stored in R2 Data Catalog

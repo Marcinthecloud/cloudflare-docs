@@ -20,26 +20,29 @@ import {
 This guide will instruct you through:
 
 - Creating an [R2 bucket](/r2/buckets/) and enabling its [data catalog](/r2/data-catalog/).
-- Using Wrangler to create a Pipeline Stream, Sink, and the SQL that reads from the stream and writes it to the sink
-- Sending some data to the stream via the HTTP Streams endpoint
-- Querying the data using R2 SQL
+- Using Wrangler to create a Pipeline Stream, Sink, and the SQL that reads from the stream and writes it to the sink.
+- Sending some data to the stream via the HTTP Streams endpoint.
+- Querying the data using R2 SQL.
 
 ## Prerequisites
 
 1. Sign up for a [Cloudflare account](https://dash.cloudflare.com/sign-up).
 2. Install [Node.js](https://nodejs.org/en/).
-3. Install [Wrangler](/workers/wranger/install-and-update)
+3. Install [Wrangler](/workers/wranger/install-and-update).
 
 :::note[Node.js version manager]
-Use a Node version manager like [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) to avoid permission issues and change Node.js versions. Wrangler requires a Node version of 16.17.0 or later.
+Use a Node version manager like [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) to avoid permission issues and change Node.js versions.
+
+Wrangler requires a Node version of 16.17.0 or later.
 :::
 
 ## 1. Set up authentication
 
-You'll need API tokens to interact with Cloudflare services.
+You will need API tokens to interact with Cloudflare services.
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
    <DashButton url="/?to=/:account/r2/overview" />
 
 2. Select **Manage API tokens**.
@@ -63,6 +66,7 @@ export WRANGLER_R2_SQL_AUTH_TOKEN= #paste your token here
 ```
 
 If this is your first time using Wrangler, make sure to login.
+
 ```bash
 npx wrangler login
 ```
@@ -83,18 +87,19 @@ Create an R2 bucket:
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
    <DashButton url="/?to=/:account/r2/overview" />
 
 2. Select **Create bucket**.
 
-3. Enter the bucket name: r2-sql-demo
+3. Enter the bucket name: `r2-sql-demo`
 
 4. Select **Create bucket**.
 </Steps>
 </TabItem>
 </Tabs>
 
-## 2. Enable R2 Data Catalog
+## 3. Enable R2 Data Catalog
 
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
@@ -112,9 +117,10 @@ When you run this command, take note of the "Warehouse". You will need these lat
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
    <DashButton url="/?to=/:account/r2/overview" />
 
-2. Select the bucket: r2-sql-demo.
+2. Select the bucket: `r2-sql-demo`.
 
 3. Switch to the **Settings** tab, scroll down to **R2 Data Catalog**, and select **Enable**.
 
@@ -125,20 +131,22 @@ When you run this command, take note of the "Warehouse". You will need these lat
 
 
 :::note
-Copy the warehouse (ACCOUNTID_BUCKETNAME) and paste it in the `export` below. We'll use it later in the tutorial.
+Copy the warehouse (ACCOUNTID_BUCKETNAME) and paste it in the `export` below. We will use it later in the tutorial.
 :::
 
 ```bash
 export $WAREHOUSE= #Paste your warehouse here
 ```
 
-## 3. Create the data Pipeline
+## 4. Create the data Pipeline
 
 <Tabs syncKey='CLIvDash'>
 <TabItem label='Wrangler CLI'>
-### 1. Create the Pipeline Stream
+
+### 4.1. Create the Pipeline Stream
 
 First, create a schema file called `demo_schema.json` with the following `json` schema:
+
 ```json
 {
   "fields": [
@@ -148,7 +156,7 @@ First, create a schema file called `demo_schema.json` with the following `json` 
   ]
 }
 ```
-Next, crete the stream we'll use to ingest events to:
+Next, create the stream we will use to ingest events to:
 
 ```bash
 npx wrangler pipelines streams create demo_stream \
@@ -157,14 +165,16 @@ npx wrangler pipelines streams create demo_stream \
   --http-auth false
 ```
 :::note
-Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you'll use to send data to your pipeline.
+Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you will use to send data to your pipeline.
 :::
 
 ```bash
 # The http ingest endpoint from the output (see example below)
 export STREAM_ENDPOINT= #the http ingest endpoint from the output (see example below)
 ```
+
 The output should look like this:
+
 ```sh
 🌀 Creating stream 'demo_stream'...
 ✨ Successfully created stream 'demo_stream' with id 'stream_id'.
@@ -191,8 +201,7 @@ Input Schema:
 └────────────┴────────┴────────────┴──────────┘
 ```
 
-
-### 2. Create the Pipeline Sink
+### 4.2. Create the Pipeline Sink
 
 Create a sink that writes data to your R2 bucket as Apache Iceberg tables:
 
@@ -207,25 +216,26 @@ npx wrangler pipelines sinks create demo_sink \
 ```
 
 :::note
-This creates a `sink` configuration that will write to the Iceberg table demo.first_table in your R2 Data Catalog every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partition the table by `DAY`
+This creates a `sink` configuration that will write to the Iceberg table `demo.first_table` in your R2 Data Catalog every 30 seconds. Pipelines automatically appends an `__ingest_ts` column that is used to partition the table by `DAY`.
 :::
 
-### 3. Create the Pipeline
+### 4.3. Create the Pipeline
 
-Pipelines are SQL statements read data from the stream, does some work, and writes it to the sink
+Pipelines are SQL statements that reads data from the stream, does some work, and writes it to the sink.
 
 ```bash
 npx wrangler pipelines create demo_pipeline \
   --sql "INSERT INTO demo_sink SELECT * FROM demo_stream WHERE numbers > 5;"
 ```
 :::note
-Note that there is a filter on this statement that will only send events where `numbers` is greater than 5
+Note that there is a filter on this statement that will only send events where `numbers` is greater than 5.
 :::
 
 </TabItem>
 <TabItem label='Dashboard'>
 <Steps>
-1. In the Cloudflare dashboard, go to **Pipelines** > **Pipelines**.
+1. In the Cloudflare dashboard, go to the Pipelines page.
+
    <DashButton url="/?to=/:account/pipelines" />
 
 2. Select **Create Pipeline**.
@@ -272,7 +282,7 @@ Note that there is a filter on this statement that will only send events where `
    - Select **Create Pipeline**
 
 8. :::note
-    Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you'll use to send data to your pipeline.
+    Note the **HTTP Ingest Endpoint URL** from the output. This is the endpoint you will use to send data to your pipeline.
    :::
 
 </Steps>
@@ -287,7 +297,7 @@ export STREAM_ENDPOINT= #the http ingest endpoint from the output (see example b
 
 ## 5. Send some data
 
-Next, let's send some events to our stream:
+Next, send some events to our stream:
 
 ```curl
 curl -X POST "$STREAM_ENDPOINT" \
@@ -314,15 +324,18 @@ curl -X POST "$STREAM_ENDPOINT" \
     }
   ]'
 ```
+
 This will send 4 events in one `POST`. Since our Pipeline is filtering out records with `numbers` less than 5, `user_id` `3` and `4` should not appear in the table. Feel free to change values and send more events.
 
 ## 6. Query the table with R2 SQL
 
-After you've sent your events to the stream, it will take about 30 seconds for the data to show in the table since that's what we configured our `roll interval` to be in the Sink.
+After you have sent your events to the stream, it will take about 30 seconds for the data to show in the table, since that is what we configured our `roll interval` to be in the Sink.
 
 ```bash
 npx wrangler r2 sql query "$WAREHOUSE" "SELECT * FROM demo.first_table LIMIT 10"
 ```
+
+## Additional resources
 
 <LinkCard
 	title="Managing R2 Data Catalogs"
@@ -333,5 +346,5 @@ npx wrangler r2 sql query "$WAREHOUSE" "SELECT * FROM demo.first_table LIMIT 10"
 <LinkCard
 	title="Try another example"
 	href="/r2-sql/tutorials/end-to-end-pipeline"
-	description="Detailed tutorial for setting up a simple fruad detection data pipeline and generate events for it in Python."
+	description="Detailed tutorial for setting up a simple fraud detection data pipeline, and generate events for it in Python."
 />

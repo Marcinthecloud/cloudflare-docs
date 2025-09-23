@@ -7,11 +7,7 @@ sidebar:
   order: 7
 ---
 
-
-
-# R2 SQL Troubleshooting Guide
-
-This guide covers potential errors and limitations you may encounter when using R2 SQL. R2 SQL is in open beta and supported functionality will evolve and change over time.
+This guide covers potential errors and limitations you may encounter when using R2 SQL. R2 SQL is in open beta, and supported functionality will evolve and change over time.
 
 ## Query Structure Errors
 
@@ -45,7 +41,7 @@ WHERE status = 200 AND timestamp BETWEEN '2025-09-24T01:00:00Z' AND '2025-09-25T
 **Error**: `Function not supported`
 </div>
 
-**Problem**: Trying to use aggregate or SQL functions in SELECT.
+**Problem**: Cannot use aggregate or SQL functions in SELECT.
 
 ```sql
 -- Invalid - Aggregate functions not supported
@@ -54,7 +50,7 @@ SELECT AVG(response_time) FROM http_requests WHERE status = 200
 SELECT MAX(timestamp) FROM logs WHERE user_id = '123'
 ```
 
-**Solution**: Use basic column selection and handle aggregation in your application code.
+**Solution**: Use basic column selection, and handle aggregation in your application code.
 
 ### JSON Field Access
 
@@ -62,7 +58,7 @@ SELECT MAX(timestamp) FROM logs WHERE user_id = '123'
 **Error**: `Cannot access nested fields`
 </div>
 
-**Problem**: Attempting to query individual fields from JSON objects.
+**Problem**: Cannot query individual fields from JSON objects.
 
 ```sql
 -- Invalid - JSON field access not supported
@@ -82,7 +78,7 @@ SELECT json_field FROM logs
 **Error**: `aliases (`AS`) are not supported`
 </div>
 
-**Problem**: Creating synthetic columns with literal values.
+**Problem**: Cannot create synthetic columns with literal values.
 
 ```sql
 -- Invalid - Synthetic data not supported
@@ -92,7 +88,7 @@ SELECT user_id, 'active' as status, 1 as priority FROM users
 SELECT user_id, status, priority FROM users WHERE status = 'active'
 ```
 
-**Solution**: Add the required data to your table schema or handle it in post-processing.
+**Solution**: Add the required data to your table schema, or handle it in post-processing.
 
 ---
 
@@ -104,7 +100,7 @@ SELECT user_id, status, priority FROM users WHERE status = 'active'
 **Error**: `Multiple tables not supported` or `JOIN operations not allowed`
 </div>
 
-**Problem**: Attempting to query multiple tables or use JOINs.
+**Problem**: Cannot query multiple tables or use JOINs.
 
 ```sql
 -- Invalid - Multiple tables not supported
@@ -118,8 +114,8 @@ SELECT * FROM table2 WHERE id IN ('id1', 'id2', 'id3')
 ```
 
 **Solution**:
-- Denormalize your data by including necessary fields in a single table
-- Perform multiple queries and join data in your application
+- Denormalize your data by including necessary fields in a single table.
+- Perform multiple queries and join data in your application.
 
 ### Subqueries
 
@@ -127,7 +123,7 @@ SELECT * FROM table2 WHERE id IN ('id1', 'id2', 'id3')
 **Error**: `only table name is supported in `FROM` clause`
 </div>
 
-**Problem**: Using subqueries in FROM clause.
+**Problem**: Cannot use subqueries in FROM clause.
 
 ```sql
 -- Invalid - Subqueries not supported
@@ -149,7 +145,7 @@ SELECT user_id FROM events WHERE status = 200
 **Error**: `This feature is not implemented: GetFieldAccess`
 </div>
 
-**Problem**: Attempting to filter on array fields.
+**Problem**: Cannot filter on array fields.
 
 ```sql
 -- Invalid - Array filtering not supported
@@ -162,9 +158,9 @@ SELECT * FROM logs WHERE tags_string LIKE '%error%'
 ```
 
 **Solution**:
-- Denormalize array data into separate columns
-- Use string concatenation of array values for pattern matching
-- Restructure your schema to avoid array types
+- Denormalize array data into separate columns.
+- Use string concatenation of array values for pattern matching.
+- Restructure your schema to avoid array types.
 
 ### JSON Object Filtering
 
@@ -172,7 +168,7 @@ SELECT * FROM logs WHERE tags_string LIKE '%error%'
 **Error**: `unsupported binary operator` or `Error during planning: could not parse compound`
 </div>
 
-**Problem**: Filtering on fields inside JSON objects.
+**Problem**: Cannot filter on fields inside JSON objects.
 
 ```sql
 -- Invalid - JSON field filtering not supported
@@ -186,8 +182,8 @@ SELECT * FROM logs WHERE json_data IS NOT NULL
 ```
 
 **Solution**:
-- Denormalize frequently queried JSON fields into separate columns
-- Filter on the entire JSON field and handle parsing in your application
+- Denormalize frequently queried JSON fields into separate columns.
+- Filter on the entire JSON field, and handle parsing in your application.
 
 ### Column Comparisons
 
@@ -195,7 +191,7 @@ SELECT * FROM logs WHERE json_data IS NOT NULL
 **Error**: `right argument to a binary expression must be a literal`
 </div>
 
-**Problem**: Comparing one column to another in WHERE clause.
+**Problem**: Cannot compare one column to another in WHERE clause.
 
 ```sql
 -- Invalid - Column comparisons not supported
@@ -207,7 +203,7 @@ SELECT * FROM logs WHERE request_size > response_size
 SELECT * FROM events WHERE duration > 0
 ```
 
-**Solution**: Handle comparisons in your application layer
+**Solution**: Handle comparisons in your application layer.
 
 ---
 
@@ -219,7 +215,7 @@ SELECT * FROM events WHERE duration > 0
 **Error**: `maximum LIMIT is 10000`
 </div>
 
-**Problem**: Using invalid LIMIT values.
+**Problem**: Cannot use invalid LIMIT values.
 
 ```sql
 -- Invalid - Out of range limits
@@ -238,7 +234,7 @@ SELECT * FROM events LIMIT 10000
 **Error**: `OFFSET not supported`
 </div>
 
-**Problem**: Attempting to use pagination syntax.
+**Problem**: Cannot use pagination syntax.
 
 ```sql
 -- Invalid - Pagination not supported
@@ -265,7 +261,7 @@ SELECT * FROM events WHERE timestamp > '2024-01-01T10:30:00Z' ORDER BY timestamp
 **Error**: `invalid SQL: only top-level SELECT clause is supported`
 </div>
 
-**Problem**: Attempting to modify table schema or reference non-existent columns.
+**Problem**: Cannot modify table schema or reference non-existent columns.
 
 ```sql
 -- Invalid - Schema changes not supported
@@ -274,8 +270,8 @@ UPDATE events SET status = 200 WHERE user_id = '123'
 ```
 
 **Solution**:
-- Plan your schema carefully before data ingestion
-- Ensure all column names exist in your current schema
+- Plan your schema carefully before data ingestion.
+- Ensure all column names exist in your current schema.
 
 ---
 
@@ -285,19 +281,19 @@ UPDATE events SET status = 200 WHERE user_id = '123'
 
 If your queries are running slowly:
 
-1. **Always include partition (timestamp) filters**: This is the most important optimization
+1. **Always include partition (timestamp) filters**: This is the most important optimization.
    ```sql
    -- Good
    WHERE timestamp BETWEEN '2024-01-01' AND '2024-01-02'
    ```
 
-2. **Use selective filtering**: Include specific conditions to reduce result sets
+2. **Use selective filtering**: Include specific conditions to reduce result sets.
    ```sql
    -- Good
    WHERE status = 200 AND country = 'US' AND timestamp > '2024-01-01'
    ```
 
-3. **Limit result size**: Use appropriate LIMIT values
+3. **Limit result size**: Use appropriate LIMIT values.
    ```sql
    -- Good for exploration
    SELECT * FROM events WHERE timestamp > '2024-01-01' LIMIT 100

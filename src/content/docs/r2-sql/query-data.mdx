@@ -11,7 +11,7 @@ import {
 } from "~/components";
 
 :::note
-R2 SQL is currently in open beta
+R2 SQL is currently in open beta.
 :::
 
 Learn how to:
@@ -32,11 +32,11 @@ Create an [API token](https://dash.cloudflare.com/profile/api-tokens) with:
 - Access to R2 storage (**minimum**: read-only)
 - Access to R2 SQL (**minimum**: read-only)
 
-Wrangler now supports the environment variable `WRANGLER_R2_SQL_AUTH_TOKEN` which you can `export` your token as.
+Wrangler now supports the environment variable `WRANGLER_R2_SQL_AUTH_TOKEN` which you can use to `export` your token.
 
 ### Create API token via API
 
-To create an API token programmatically for use with R2 SQL, you'll need to specify  R2 SQL, R2 Data Catalog, and R2 storage permission groups in your [Access Policy](/r2/api/tokens/#access-policy).
+To create an API token programmatically for use with R2 SQL, you will need to specify  R2 SQL, R2 Data Catalog, and R2 storage permission groups in your [Access Policy](/r2/api/tokens/#access-policy).
 
 #### Example Access Policy
 
@@ -77,12 +77,13 @@ export WRANGLER_R2_SQL_AUTH_TOKEN=your_token_here
 ```
 
 If this is your first time using Wrangler, make sure to login.
+
 ```bash
 npx wrangler login
 ```
 
 :::note
-You'll want to copy the **warehouse** of the R2 Data Catalog:
+You will want to copy the `Warehouse` of the R2 Data Catalog:
 :::
 
 ```sh
@@ -103,10 +104,12 @@ To query R2 SQL with Wrangler, simply run:
 ```sh
 npx wrangler r2 sql query "YOUR_WAREHOUSE" "SELECT * FROM namespace.table_name limit 10;"
 ```
-For a full list of supported sql commands, check out the [R2 SQL reference page](/r2-sql/reference/sql-reference).
+
+For a full list of supported sql commands, refer to the [R2 SQL reference page](/r2-sql/reference/sql-reference).
 
 
 ## REST API
+
 Below is an example of using R2 SQL via the REST endpoint:
 
 ```bash
@@ -119,7 +122,8 @@ curl -X POST \
   }'
 ```
 
-Learn more:
+## Additional resources
+
 <LinkCard
 	title="Manage R2 Data Catalogs"
 	href="/r2/data-catalog/manage-catalogs/"
@@ -129,5 +133,5 @@ Learn more:
 <LinkCard
 	title="Build an end to end data pipeline"
 	href="/r2-sql/tutorials/end-to-end-pipeline"
-	description="Detailed tutorial for setting up a simple fruad detection data pipeline and generate events for it in Python."
+	description="Detailed tutorial for setting up a simple fraud detection data pipeline, and generate events for it in Python."
 />
