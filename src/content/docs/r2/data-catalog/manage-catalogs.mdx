@@ -28,7 +28,8 @@ Learn how to:
 
 Enabling the catalog on a bucket turns on the REST catalog interface and provides a **Catalog URI** and **Warehouse name** required by Iceberg clients. Once enabled, you can create and manage Iceberg tables in that bucket.
 
-### Dashboard
+<Tabs syncKey='CLIvDash'>
+<TabItem label='Dashboard'>
 
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
@@ -39,8 +40,8 @@ Enabling the catalog on a bucket turns on the REST catalog interface and provide
 4. Once enabled, note the **Catalog URI** and **Warehouse name**.
 </Steps>
 
-### Wrangler CLI
-
+</TabItem>
+<TabItem label='Wrangler CLI'>
 To enable the catalog on your bucket, run the [`r2 bucket catalog enable command`](/workers/wrangler/commands/#r2-bucket-catalog-enable):
 
 ```bash
@@ -48,13 +49,16 @@ npx wrangler r2 bucket catalog enable <BUCKET_NAME>
 ```
 
 After enabling, Wrangler will return your catalog URI and warehouse name.
+</TabItem>
+</Tabs>
+
 
 ## Disable R2 Data Catalog on a bucket
 
 When you disable the catalog on a bucket, it immediately stops serving requests from the catalog interface. Any Iceberg table references stored in that catalog become inaccessible until you re-enable it.
 
-### Dashboard
-
+<Tabs syncKey='CLIvDash'>
+<TabItem label='Dashboard'>
 <Steps>
 1. In the Cloudflare dashboard, go to the **R2 object storage** page.
 
@@ -63,13 +67,72 @@ When you disable the catalog on a bucket, it immediately stops serving requests 
 3. Switch to the **Settings** tab, scroll down to **R2 Data Catalog**, and select **Disable**.
 </Steps>
 
-### Wrangler CLI
-
+</TabItem>
+<TabItem label='Wrangler CLI'>
 To disable the catalog on your bucket, run the [`r2 bucket catalog disable command`](/workers/wrangler/commands/#r2-bucket-catalog-disable):
 
 ```bash
 npx wrangler r2 bucket catalog disable <BUCKET_NAME>
 ```
+</TabItem>
+</Tabs>
+
+## Enable compaction
+Compaction is a performance optimization that takes the many small files created when ingesting data and combines them into fewer, larger files according to the set `target file size`. [Click here](http:///r2/data-catalog/about-compaction) to learn more about compaction.
+<Tabs syncKey='CLIvDash'>
+<TabItem label='Dashboard'>
+
+<Steps>
+1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
+   <DashButton url="/?to=/:account/r2/overview" />
+2. Select the bucket you want to enable compaction on.
+3. Switch to the **Settings** tab, scroll down to **R2 Data Catalog**, and click on the **edit** icon next to the compaction card.
+4. Click enable and optionally set a target file size. The default is 128MB.
+5. Provide a credential: you can choose to allow us generate an account-level token on your behalf, which is scoped to your bucket (recommended); or, you can manually input a token.
+6. Slick *save*
+</Steps>
+
+</TabItem>
+<TabItem label='Wrangler CLI'>
+
+To enable the compaction on your catalog, run the [`r2 bucket catalog enable command`](/workers/wrangler/commands/#r2-bucket-catalog-compaction-enable):
+
+```bash
+npx wrangler r2 bucket catalog compaction enable <BUCKET_NAME>  --targetSizeMb 128 --token <API_TOKEN>
+```
+</TabItem>
+</Tabs>
+An API Token is a required argument to enable compaction because our process needs to access and write metadata in R2 Catalog and access files in the R2 bucket, just like any Iceberg client would require. So we need an API Token with R2 Bucket Read/Write permissions and R2 Catalog Read/Write permissions. The token is encrypted and securely accessed only by our compaction processor. Once saved, it is not required again if you re-enable compaction on your Catalog after disabling it.
+
+After enabling, compaction will be enabled retroactively on all existing tables, and will be enabled by default for newly created tables. During open beta, we currently compact up to 2GB worth of files once per hour for each table.
+
+## Disable compaction
+Disabling compaction will prevent the process from running for all tables within the Catalog. You can re-enable it at any time.
+
+<Tabs syncKey='CLIvDash'>
+<TabItem label='Dashboard'>
+
+<Steps>
+1. In the Cloudflare dashboard, go to the **R2 object storage** page.
+
+   <DashButton url="/?to=/:account/r2/overview" />
+2. Select the bucket you want to enable compaction on.
+3. Switch to the **Settings** tab, scroll down to **R2 Data Catalog**, and click on the **edit** icon next to the compaction card.
+4. Click **disable**.
+5. Slick *save*.
+</Steps>
+
+</TabItem>
+<TabItem label='Wrangler CLI'>
+
+To disable the compaction on your catalog, run the [`r2 bucket catalog disable command`](/workers/wrangler/commands/#r2-bucket-catalog-compaction-disable):
+
+```bash
+npx wrangler r2 bucket catalog compaction disable <BUCKET_NAME> --token <API_TOKEN>
+```
+</TabItem>
+</Tabs>
 
 ## Authenticate your Iceberg engine
 

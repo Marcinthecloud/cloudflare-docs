@@ -1,0 +1,45 @@
+---
+pcx_content_type: configuration
+title: About compaction
+description: Learn about R2 Data Catalog compaction
+sidebar:
+  order: 4
+---
+
+## What is compaction?
+
+Compaction is the process of taking a group of small files and combining them into fewer larger files. This is an important maintenance operation as it helps ensure that performance remains consistent by reducing the number of files that needs to be scanned.
+
+## Why do I need compaction?
+
+Every write operation in Apache Iceberg, no matter how small or large, results in a series of new files being generated. As time goes on, the number of files can grow unbounded. This can lead to:
+- Increased metadata overhead: Each file has its own metadata, file path, column statistics, etc. This means the query engine will have to read a large amount of metadata to satisfy a given query.
+- Increased I/O operations: Without compaction, query engines will have to open and read each individual file, resulting in increased resource usage and cost.
+- Reduced compression efficiency: Smaller files tend to compress less efficiently compared to larger files.
+
+## R2 Data Catalog Compaction
+
+R2 Data Catalog can now [manage compaction](/r2/data-catalog/manage-catalogs) for Apache Iceberg tables stored in R2. The compaction service periodically runs every hour and compacts new files that have not been compacted yet.
+
+You can tell which files in R2 have been compacted as they have a `compacted-` added to the file name in the `/data/` directory.
+
+### Choosing the right target file size
+
+You can configure the target file size compaction should try to generate if possible. There is a minimum of `64 MB` and a maximum of `512 MB` currently.
+
+Different compute engines tend to have different best practices when it comes to ideal file sizes so it's best to consult their documentation to find out what's best.
+
+It's important to note that there are performance tradeoffs to keep in mind based on the use case. For example, if your use case is primarily performing queries that are well defined and will return small amounts of data, having a smaller target file size might be more beneficial as you might end up reading more data than necessary with larger files.
+- For workloads that are more latency sensitive, consider a smaller target file size (for example, 64MB - 128MB)
+- For streaming ingest workloads, consider medium file sizes (for example, 128MB - 256MB)
+- For OLAP style queries that need to scan a lot of data, consider larger file sizes (for example, 256MB - 512MB)
+
+:::note
+Make sure to check to your compute engine documentation to check if there's a recommended file size.
+:::
+
+## Current limitations
+- During open beta, compaction will compact up to 2GB worth of files once per hour for each table.
+- Only data files stored in parquet format are currently supported with compaction.
+- Snapshot expiration and orphan file cleanup is not supported yet.
+- Minimum target file size is 64 MB and maximum is 512 MB.
