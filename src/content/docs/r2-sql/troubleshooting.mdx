@@ -1,10 +1,10 @@
 ---
-title: "R2 SQL Troubleshooting Guide"
+title: "Troubleshooting guide"
 pcx_content_type: concept
 tags:
   - SQL
 sidebar:
-  order: 7
+  order: 5
 ---
 
 This guide covers potential errors and limitations you may encounter when using R2 SQL. R2 SQL is in open beta, and supported functionality will evolve and change over time.
@@ -14,7 +14,7 @@ This guide covers potential errors and limitations you may encounter when using 
 ### Missing Required Clauses
 
 <div className="error-box">
-**Error**: `expected exactly 1 table in FROM clause`
+	**Error**: `expected exactly 1 table in FROM clause`
 </div>
 
 **Problem**: R2 SQL requires specific clauses in your query.
@@ -37,9 +37,7 @@ WHERE status = 200 AND timestamp BETWEEN '2025-09-24T01:00:00Z' AND '2025-09-25T
 
 ### Unsupported SQL Functions
 
-<div className="error-box">
-**Error**: `Function not supported`
-</div>
+<div className="error-box">**Error**: `Function not supported`</div>
 
 **Problem**: Cannot use aggregate or SQL functions in SELECT.
 
@@ -54,9 +52,7 @@ SELECT MAX(timestamp) FROM logs WHERE user_id = '123'
 
 ### JSON Field Access
 
-<div className="error-box">
-**Error**: `Cannot access nested fields`
-</div>
+<div className="error-box">**Error**: `Cannot access nested fields`</div>
 
 **Problem**: Cannot query individual fields from JSON objects.
 
@@ -74,9 +70,7 @@ SELECT json_field FROM logs
 
 ### Synthetic Data
 
-<div className="error-box">
-**Error**: `aliases (AS) are not supported`
-</div>
+<div className="error-box">**Error**: `aliases (AS) are not supported`</div>
 
 **Problem**: Cannot create synthetic columns with literal values.
 
@@ -97,7 +91,7 @@ SELECT user_id, status, priority FROM users WHERE status = 'active'
 ### Multiple Tables
 
 <div className="error-box">
-**Error**: `Multiple tables not supported` or `JOIN operations not allowed`
+	**Error**: `Multiple tables not supported` or `JOIN operations not allowed`
 </div>
 
 **Problem**: Cannot query multiple tables or use JOINs.
@@ -114,13 +108,14 @@ SELECT * FROM table2 WHERE id IN ('id1', 'id2', 'id3')
 ```
 
 **Solution**:
+
 - Denormalize your data by including necessary fields in a single table.
 - Perform multiple queries and join data in your application.
 
 ### Subqueries
 
 <div className="error-box">
-**Error**: `only table name is supported in FROM clause`
+	**Error**: `only table name is supported in FROM clause`
 </div>
 
 **Problem**: Cannot use subqueries in FROM clause.
@@ -142,7 +137,7 @@ SELECT user_id FROM events WHERE status = 200
 ### Array Filtering
 
 <div className="error-box">
-**Error**: `This feature is not implemented: GetFieldAccess`
+	**Error**: `This feature is not implemented: GetFieldAccess`
 </div>
 
 **Problem**: Cannot filter on array fields.
@@ -158,6 +153,7 @@ SELECT * FROM logs WHERE tags_string LIKE '%error%'
 ```
 
 **Solution**:
+
 - Denormalize array data into separate columns.
 - Use string concatenation of array values for pattern matching.
 - Restructure your schema to avoid array types.
@@ -165,7 +161,8 @@ SELECT * FROM logs WHERE tags_string LIKE '%error%'
 ### JSON Object Filtering
 
 <div className="error-box">
-**Error**: `unsupported binary operator` or `Error during planning: could not parse compound`
+	**Error**: `unsupported binary operator` or `Error during planning: could not
+	parse compound`
 </div>
 
 **Problem**: Cannot filter on fields inside JSON objects.
@@ -182,13 +179,14 @@ SELECT * FROM logs WHERE json_data IS NOT NULL
 ```
 
 **Solution**:
+
 - Denormalize frequently queried JSON fields into separate columns.
 - Filter on the entire JSON field, and handle parsing in your application.
 
 ### Column Comparisons
 
 <div className="error-box">
-**Error**: `right argument to a binary expression must be a literal`
+	**Error**: `right argument to a binary expression must be a literal`
 </div>
 
 **Problem**: Cannot compare one column to another in WHERE clause.
@@ -211,9 +209,7 @@ SELECT * FROM events WHERE duration > 0
 
 ### Invalid Limit Values
 
-<div className="error-box">
-**Error**: `maximum LIMIT is 10000`
-</div>
+<div className="error-box">**Error**: `maximum LIMIT is 10000`</div>
 
 **Problem**: Cannot use invalid LIMIT values.
 
@@ -230,9 +226,7 @@ SELECT * FROM events LIMIT 10000
 
 ### Pagination Attempts
 
-<div className="error-box">
-**Error**: `OFFSET not supported`
-</div>
+<div className="error-box">**Error**: `OFFSET not supported`</div>
 
 **Problem**: Cannot use pagination syntax.
 
@@ -258,7 +252,7 @@ SELECT * FROM events WHERE timestamp > '2024-01-01T10:30:00Z' ORDER BY timestamp
 ### Dynamic Schema Changes
 
 <div className="error-box">
-**Error**: `invalid SQL: only top-level SELECT clause is supported`
+	**Error**: `invalid SQL: only top-level SELECT clause is supported`
 </div>
 
 **Problem**: Cannot modify table schema or reference non-existent columns.
@@ -270,6 +264,7 @@ UPDATE events SET status = 200 WHERE user_id = '123'
 ```
 
 **Solution**:
+
 - Plan your schema carefully before data ingestion.
 - Ensure all column names exist in your current schema.
 
@@ -282,12 +277,14 @@ UPDATE events SET status = 200 WHERE user_id = '123'
 If your queries are running slowly:
 
 1. **Always include partition (timestamp) filters**: This is the most important optimization.
+
    ```sql
    -- Good
    WHERE timestamp BETWEEN '2024-01-01' AND '2024-01-02'
    ```
 
 2. **Use selective filtering**: Include specific conditions to reduce result sets.
+
    ```sql
    -- Good
    WHERE status = 200 AND country = 'US' AND timestamp > '2024-01-01'
@@ -298,4 +295,3 @@ If your queries are running slowly:
    -- Good for exploration
    SELECT * FROM events WHERE timestamp > '2024-01-01' LIMIT 100
    ```
-

@@ -1,16 +1,12 @@
 ---
-title: SQL Reference
+title: SQL reference
 pcx_content_type: concept
+description: Comprehensive reference for SQL syntax and data types supported in R2 SQL.
 tags:
   - SQL
 sidebar:
-  order: 5
+  order: 4
 ---
-
-# R2 SQL Language Reference
-
-## Overview
-
 
 :::note
 R2 SQL is in public beta. Supported SQL grammar may change over time.
@@ -63,7 +59,6 @@ SELECT timestamp, user_id, response_code FROM table_name
 ```sql
 SELECT * FROM table_name
 ```
-
 
 ---
 
@@ -215,14 +210,14 @@ LIMIT 500
 
 ### Supported Types
 
-| Type | Description | Example Values |
-| :---- | :---- | :---- |
-| `integer` | Whole numbers | `1`, `42`, `-10`, `0` |
-| `float` | Decimal numbers | `1.5`, `3.14`, `-2.7`, `0.0` |
-| `string` | Text values | `'hello'`, `'GET'`, `'2024-01-01'` |
-| `boolean` | Boolean values | `true`, `false` |
-| `timestamp` | RFC3339 | `'2025-09-24T01:00:00Z'` |
-| `date` | 'YYYY-MM-DD' | `'2025-09-24'` |
+| Type        | Description     | Example Values                     |
+| :---------- | :-------------- | :--------------------------------- |
+| `integer`   | Whole numbers   | `1`, `42`, `-10`, `0`              |
+| `float`     | Decimal numbers | `1.5`, `3.14`, `-2.7`, `0.0`       |
+| `string`    | Text values     | `'hello'`, `'GET'`, `'2024-01-01'` |
+| `boolean`   | Boolean values  | `true`, `false`                    |
+| `timestamp` | RFC3339         | `'2025-09-24T01:00:00Z'`           |
+| `date`      | 'YYYY-MM-DD'    | `'2025-09-24'`                     |
 
 ### Type Usage in Conditions
 
@@ -256,4 +251,3 @@ SELECT * FROM table_name WHERE (status = 404 OR status = 500) AND method = 'GET'
 ```
 
 ---
-
