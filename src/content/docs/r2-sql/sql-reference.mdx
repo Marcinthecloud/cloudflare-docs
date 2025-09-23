@@ -196,10 +196,10 @@ LIMIT 1000
 ### Null Handling
 
 ```sql
-SELECT user_id, session_id, timestamp
+SELECT user_id, session_id, date_column
 FROM user_events
 WHERE session_id IS NOT NULL
-  AND timestamp >= '2024-01-01'
+  AND date_column >= '2024-01-01'
 ORDER BY timestamp
 LIMIT 500
 ```

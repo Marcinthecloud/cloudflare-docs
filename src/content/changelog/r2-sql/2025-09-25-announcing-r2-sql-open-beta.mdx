@@ -1,0 +1,54 @@
+---
+title: Announcing R2 SQL
+description: Run SQL queries against Apache Iceberg tables in R2 Data Catalog
+date: 2025-09-25
+products:
+  - r2-sql
+hidden: true
+---
+
+import { LinkCard} from "~/components";
+
+Today, we're launching the **open beta** for R2 SQL: A serverless, distributed query engine that can efficiently analyze petabytes of data in Apache Iceberg tables managed by [R2 Data Catalog](/r2/data-catalog).
+
+## What makes R2 SQL special?
+R2 SQL was built from the ground up to take advantage of Cloudflare's globally distributed compute, network and storage. Just some of the innovations and optimizations this enabled us to make include:
+- **Intelligent Query Planner**: R2 SQL utilizes R2 Data Catalog's metadata to reduce reading unnecessary files before reading a single byte, reducing I/O overhead and latency.
+- **Streaming execution pipeline**: R2 SQL begins processing data immediately as metadata continues to stream to the query planner, minimizing latency and allowing work to be efficiently parallelized.
+- **Truly serverless**: There's no infrastructure to manage or compute to scale. Just submit a query and Cloudflare's global compute infrastructure takes care of the rest.
+
+There's so much more that went into building R2 SQL - check out the [technical deep dive blog post](https://blog.cloudflare.com/r2-sql-deep-dive/) that goes into more details.
+
+# Give it a try
+
+Give our[getting started guide](/r2-sql/getting-started) a try. If you already have tables in R2 Data Catalog, running queries is as simple as:
+
+```bash
+export WRANGLER_R2_SQL_AUTH_TOKEN=<R2_API_TOKEN>
+
+npx wrangler r2 sql query "YOUR_WAREHOUSE" "
+SELECT
+    user_id,
+    event_type,
+		value,
+    __ingest_ts
+FROM events.user_events
+WHERE (event_type = 'CHANGELOG' or event_type = 'BLOG')
+  AND __ingest_ts BETWEEN '2025-09-24T01:00:00Z' AND '2025-09-25T01:00:00Z'
+ORDER BY __ingest_ts DESC
+LIMIT 1000"
+```
+
+## Learn more
+
+<LinkCard
+	title="Getting started"
+	href="/r2-sql/getting-started"
+	description="Learn how to query tables in R2 Data Catalog with R2 SQL"
+/>
+
+<LinkCard
+	title="SQL Reference"
+	href="/r2-sql/sql-reference"
+	description="Learn more about what features are available today"
+/>
