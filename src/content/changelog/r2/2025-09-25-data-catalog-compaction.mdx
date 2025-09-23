@@ -1,0 +1,39 @@
+---
+title: R2 Data Catalog now supports compaction.
+description: Users can now enable compaction on R2 Data Catalog
+products:
+  - r2
+date: 2025-09-25
+hidden: true
+---
+import {
+	LinkCard,
+} from "~/components";
+
+Today, we're adding support for managed [compaction](/r2/data-catalog/about-compaction) for [Apache Iceberg](https://iceberg.apache.org/) tables managed by [R2 Data Catalog](/r2/data-catalog/).
+
+Compaction is the process of taking a group of small files and combining them into fewer larger files. This is an important maintenance operation as it helps ensure that performance remains consistent by reducing the number of files that needs to be scanned when running queries.
+
+To enable compaction in R2 Data Catalog, find it under **R2 Data Catalog** in your bucket settings in the dashboard
+
+![compaction-dash](~/assets/images/changelog/r2/compaction.png)
+
+or simply run:
+
+```bash
+npx wrangler r2 bucket catalog compaction enable <BUCKET_NAME>  --targetSizeMb 128 --token <API_TOKEN>
+```
+
+And that's it. Compaction will start running automatically.
+
+<LinkCard
+	title="Learn more about R2 Data Catalog"
+	href="/r2/data-catalog/manage-catalogs"
+	description="Learn how to manage R2 Data Catalog and enable compaction on your bucket."
+/>
+
+<LinkCard
+	title="Learn more about compaction"
+	href="/r2/data-catalog/about-compaction"
+	description="Learn more about compaction, best practices, and limitations."
+/>
