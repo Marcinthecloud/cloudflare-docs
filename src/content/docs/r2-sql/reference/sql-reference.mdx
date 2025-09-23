@@ -25,8 +25,8 @@ This page documents the R2 SQL syntax based on the currently supported grammar i
 ```sql
 SELECT column_list
 FROM table_name
-WHERE conditions
-[ORDER BY column_name [DESC, ASC]]
+WHERE conditions --optional
+[ORDER BY column_name [DESC | ASC]]
 [LIMIT number]
 ```
 
@@ -220,8 +220,9 @@ LIMIT 500
 | `integer` | Whole numbers | `1`, `42`, `-10`, `0` |
 | `float` | Decimal numbers | `1.5`, `3.14`, `-2.7`, `0.0` |
 | `string` | Text values | `'hello'`, `'GET'`, `'2024-01-01'` |
-| `boolean` | boolean values | `true`, `false` |
+| `boolean` | Boolean values | `true`, `false` |
 | `timestamp` | RFC3339 | `'2025-09-24T01:00:00Z'` |
+| `date` | 'YYYY-MM-DD' | `'2025-09-24'` |
 
 ### Type Usage in Conditions
 
