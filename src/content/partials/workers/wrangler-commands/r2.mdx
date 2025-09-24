@@ -122,8 +122,8 @@ wrangler r2 bucket catalog compaction enable <BUCKET> [OPTIONS]
   - The name of the bucket to enable R2 Data Catalog compaction for.
 - `--token` <Type text="string" /> <MetaInfo text="required" />
   - The R2 API token with R2 Data Catalog edit permissions
-- `--targetSizeMb` <Type text="number" /> <MetaInfo text="required" />
-  - The target file size compaction will attempt to generate if possible. Default: 128MB.
+- `--target-size` <Type text="number" /> <MetaInfo text="required" />
+  - The target file size (in MB) compaction will attempt to generate. Default: 128.
 
 <AnchorHeading
 	title="`catalog compaction disable`"
