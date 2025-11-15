@@ -74,8 +74,8 @@ To query data with R2 SQL, you must provide a Cloudflare API token with R2 SQL, 
 
 Create an [R2 API token](/r2/api/tokens/#permissions) with the following permissions:
 
-- Access to R2 Data Catalog (read-only)
-- Access to R2 storage (Admin read/write)
+- Access to R2 Data Catalog (edit)
+- Access to R2 storage (admin read/write)
 - Access to R2 SQL (read-only)
 
 Use this token value for the `WRANGLER_R2_SQL_AUTH_TOKEN` environment variable when querying with Wrangler, or in the Authorization header when using the REST API.
