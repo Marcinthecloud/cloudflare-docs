@@ -15,22 +15,23 @@ R2 SQL is designed for querying **partitioned** Apache Iceberg tables in your R2
 
 ## Quick Reference
 
-| Feature               | Supported | Notes                                 |
-| :-------------------- | :-------- | :------------------------------------ |
-| Basic SELECT          | Yes       | Columns, \*                           |
-| Aggregation functions | No        | No COUNT, AVG, etc.                   |
-| Single table FROM     | Yes       | Note, aliasing not supported          |
-| WHERE clause          | Yes       | Filters, comparisons, equality, etc   |
-| JOINs                 | No        | No table joins                        |
-| Array filtering       | No        | No array type support                 |
-| JSON filtering        | No        | No nested object queries              |
-| Simple LIMIT          | Yes       | 1-10,000 range, no pagination support |
-| ORDER BY              | Yes       | Any columns of the partition key only |
-| GROUP BY              | No        | Not supported                         |
+| Feature               | Supported | Notes                                            |
+| :-------------------- | :-------- | :----------------------------------------------- |
+| Basic SELECT          | Yes       | Columns, \*                                      |
+| Aggregation functions | Yes       | COUNT(\*), SUM, AVG, MIN, MAX with limitations   |
+| Single table FROM     | Yes       | Note, aliasing not supported                     |
+| WHERE clause          | Yes       | Filters, comparisons, equality, etc              |
+| JOINs                 | No        | No table joins                                   |
+| Array filtering       | No        | No array type support                            |
+| JSON filtering        | No        | No nested object queries                         |
+| Simple LIMIT          | Yes       | 1-10,000 range, no pagination support            |
+| ORDER BY              | Yes       | Partition key only, or COUNT(\*) with GROUP BY   |
+| GROUP BY              | Yes       | Supported with limitations                       |
+| HAVING                | Yes       | Only with COUNT(\*)                              |
 
 ## Supported SQL Clauses
 
-R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, `ORDER BY`, and `LIMIT`. All other SQL clauses are not supported at the moment. New features will be released in the future, keep an eye on this page for the latest.
+R2 SQL supports: `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, and `LIMIT`. New features will be released in the future, keep an eye on this page for the latest.
 
 ---
 
@@ -44,9 +45,9 @@ R2 SQL supports a limited set of SQL clauses: `SELECT`, `FROM`, `WHERE`, `ORDER 
 ### Limitations
 
 - **No JSON field querying**: Cannot query individual fields from JSON objects
-- **No SQL functions**: Functions like `AVG()`, `COUNT()`, `MAX()`, `MIN()`, quantiles are not supported
+- **Limited aggregation functions**: See Aggregation Functions section below for details
 - **No synthetic data**: Cannot create synthetic columns like `SELECT 1 AS what, "hello" AS greeting`
-- **No field aliasing**: `SELECT field AS another_name`
+- **No field aliasing**: `SELECT field AS another_name` (applies to both regular columns and aggregations)
 
 ### Examples
 
@@ -60,6 +61,103 @@ SELECT user_id AS uid, timestamp AS ts FROM my_table;
 SELECT COUNT(*) FROM events FROM FROM my_table;
 SELECT json_field.property FROM my_table;
 SELECT 1 AS synthetic_column FROM my_table;
+```
+
+---
+
+## Aggregation Functions
+
+### Supported Features
+
+- **COUNT(*)**: Count total rows **note**: only `*` is supported
+- **SUM(column)**: Sum numeric values
+- **AVG(column)**: Calculate average of numeric values
+- **MIN(column)**: Find minimum value
+- **MAX(column)**: Find maximum value
+- **With GROUP BY**: All aggregations work with `GROUP BY`
+
+### Limitations
+
+- **No aliases**: `AS` keyword not supported (`SELECT COUNT(*) AS total` fails)
+- **COUNT(*) only**: `COUNT(column_name)` or `COUNT(DISTINCT column)` is not supported
+- **No aggregation in WHERE**: Cannot use aggregations in WHERE clause
+
+### Examples
+
+```sql
+-- Valid
+SELECT department, COUNT(*) FROM sales GROUP BY department
+SELECT region, AVG(amount) FROM sales GROUP BY region
+SELECT category, MIN(price), MAX(price) FROM products GROUP BY category
+
+-- Invalid
+SELECT COUNT(*) AS total FROM sales GROUP BY department -- No aliases
+SELECT COUNT(department) FROM sales -- Must use COUNT(*)
+SELECT COUNT(DISTINCT region) FROM sales -- No DISTINCT
+SELECT SUM(quantity) FROM sales -- SUM on INTEGER fails
+SELECT department, SUM(amount)
+FROM sales
+GROUP BY department
+ORDER BY SUM(amount) DESC -- ORDER BY SUM not supported
+```
+
+---
+
+## GROUP BY Clause
+
+### Supported Features
+
+- **Single column grouping**: `GROUP BY column`
+- **Multiple column grouping**: `GROUP BY column1, column2`
+- **With WHERE**: Filter before grouping
+- **With HAVING**: Filter grouped results (COUNT(*) only)
+- **With LIMIT**: Limit grouped results
+
+### Limitations
+
+- **HAVING COUNT(*) only**: Cannot use HAVING with SUM/AVG
+- **No expressions**: Cannot use expressions in GROUP BY (e.g., `GROUP BY YEAR(date)`)
+- **No BOOLEAN grouping**: Cannot group by BOOLEAN columns
+
+### Examples
+
+```sql
+-- Valid
+SELECT region, COUNT(*) FROM sales GROUP BY region
+SELECT dept, category, COUNT(*) FROM sales GROUP BY dept, category
+SELECT region, COUNT(*) FROM sales WHERE status = 'completed' GROUP BY region
+SELECT dept, COUNT(*) FROM sales GROUP BY dept ORDER BY COUNT(*) DESC LIMIT 10
+
+-- Invalid
+SELECT is_active, SUM(amount) FROM sales GROUP BY is_active -- BOOLEAN grouping
+SELECT dept, SUM(amount) FROM sales GROUP BY dept ORDER BY SUM(amount) DESC -- ORDER BY SUM
+```
+
+---
+
+## HAVING Clause
+
+### Supported Features
+
+- **With COUNT(*)**: Filter groups by count
+- **Comparison operators**: `>`, `>=`, `=`, `<`, `<=`, `!=`
+- **With GROUP BY**: Must be used with GROUP BY
+
+### Limitations
+
+- **COUNT(*) only**: `HAVING SUM(column)` or `HAVING AVG(column)` not supported
+- **No complex expressions**: Simple comparisons only
+- **No AND/OR**: Multiple HAVING conditions not supported
+
+### Examples
+
+```sql
+-- Valid
+SELECT region, COUNT(*) FROM sales GROUP BY region HAVING COUNT(*) > 1000
+
+-- Invalid
+SELECT dept, SUM(amount) FROM sales GROUP BY dept HAVING SUM(amount) > 100000 -- HAVING with SUM
+SELECT region, COUNT(*) FROM sales GROUP BY region HAVING COUNT(*) > 100 AND COUNT(*) < 1000 -- Multiple conditions
 ```
 
 ---
@@ -138,16 +236,25 @@ SELECT * FROM logs WHERE response_time + latency > 5000 -- Arithmetic
 
 - **ASC**: Ascending order
 - **DESC**: Descending order (Default, on full partition key)
+- **With partition key**: Order by partition key columns
+- **With COUNT(*)**: Order by COUNT(*) when using GROUP BY
 
 ### Limitations
 
-- **Non-partition keys not supported**: `ORDER BY` on columns other than the partition key is not supported
+- **Non-partition keys not supported**: `ORDER BY` on columns other than the partition key is not supported (except with aggregations)
+- **COUNT(*) only**: `ORDER BY SUM(column)`, `ORDER BY AVG(column)`, `ORDER BY MIN(column)`, or `ORDER BY MAX(column)` not supported
 
 ### Examples
 
 ```sql
+-- Valid
 SELECT * FROM table_name WHERE ... ORDER BY partitionKey
 SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC
+SELECT dept, COUNT(*) FROM table_name GROUP BY dept ORDER BY COUNT(*) DESC
+
+-- Invalid
+SELECT dept, SUM(amount) FROM table_name GROUP BY dept ORDER BY SUM(amount) DESC
+SELECT region, AVG(price) FROM table_name GROUP BY region ORDER BY AVG(price)
 ```
 
 ---
@@ -184,13 +291,13 @@ SELECT * FROM events LIMIT 10 * 10 -- Arithmetic
 
 The following SQL clauses are **not supported**:
 
-- `GROUP BY`
-- `HAVING`
 - `UNION`/`INTERSECT`/`EXCEPT`
 - `WITH` (Common Table Expressions)
 - `WINDOW` functions
 - `INSERT`/`UPDATE`/`DELETE`
 - `CREATE`/`ALTER`/`DROP`
+
+Note: `GROUP BY` and `HAVING` are partially supported with significant limitations (see sections above).
 
 ---
 
@@ -199,5 +306,10 @@ The following SQL clauses are **not supported**:
 1. Always include time filters in your WHERE clause to ensure efficient queries.
 2. Use specific column selection instead of `SELECT *` when possible for better performance.
 3. Structure your data to avoid nested JSON objects if you need to filter on those fields.
+4. When using aggregations, always include `GROUP BY` for reliable results.
+5. Use `COUNT(*)` exclusively - avoid `COUNT(column_name)` or `COUNT(DISTINCT column)`.
+6. For ordering aggregated results, use `ORDER BY COUNT(*)` rather than `ORDER BY SUM/AVG/MIN/MAX`.
+7. Use `SUM()` only on DECIMAL or FLOAT columns, not INTEGER columns.
+8. Avoid grouping by BOOLEAN columns when using aggregation functions.
 
 ---

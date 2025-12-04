@@ -16,12 +16,14 @@ This page documents the R2 SQL syntax based on the currently supported grammar i
 
 ---
 
-## Complete Query Syntax
+## Query Syntax
 
 ```sql
-SELECT column_list
+SELECT column_list | aggregation_function
 FROM table_name
 WHERE conditions --optional
+[GROUP BY column_list]
+[HAVING conditions]
 [ORDER BY column_name [DESC | ASC]]
 [LIMIT number]
 ```
@@ -48,6 +50,59 @@ SELECT * FROM table_name
 SELECT user_id FROM table_name
 SELECT user_id, timestamp, status FROM table_name
 SELECT timestamp, user_id, response_code FROM table_name
+```
+
+---
+
+## Aggregation Functions
+
+### Syntax
+
+```sql
+SELECT aggregation_function(column_name)
+FROM table_name
+GROUP BY column_list
+```
+
+### Supported Functions
+
+- **COUNT(*)**: Counts total rows **note**: only `*` is supported
+- **SUM(column)**: Sums numeric values
+- **AVG(column)**: Calculates average of numeric values
+- **MIN(column)**: Finds minimum value
+- **MAX(column)**: Finds maximum value
+
+### Examples
+
+```sql
+-- Count rows by department
+SELECT department, COUNT(*)
+FROM sales_data
+GROUP BY department
+
+-- Sum decimal values
+SELECT region, SUM(total_amount)
+FROM sales_data
+GROUP BY region
+
+-- Average by category
+SELECT category, AVG(price)
+FROM products
+GROUP BY category
+
+-- Min and Max
+SELECT department, MIN(salary), MAX(salary)
+FROM employees
+GROUP BY department
+
+-- Invalid: No aliases
+SELECT department, COUNT(*) AS total FROM sales_data GROUP BY department
+
+-- Invalid: COUNT column name
+SELECT COUNT(department) FROM sales_data
+
+-- Invalid: SUM on integer
+SELECT SUM(quantity) FROM sales_data
 ```
 
 ---
@@ -111,6 +166,87 @@ SELECT * FROM table_name WHERE response_time > 1000
 SELECT * FROM table_name WHERE user_id IS NOT NULL
 SELECT * FROM table_name WHERE method = 'GET' AND status >= 200 AND status < 300
 SELECT * FROM table_name WHERE (status = 404 OR status = 500) AND timestamp > '2024-01-01'
+```
+
+---
+
+## GROUP BY Clause
+
+### Syntax
+
+```sql
+SELECT column_list, aggregation_function
+FROM table_name
+[WHERE conditions]
+GROUP BY column_list
+```
+
+### Examples
+
+```sql
+-- Single column grouping
+SELECT department, COUNT(*)
+FROM sales_data
+GROUP BY department
+
+-- Multiple column grouping
+SELECT department, category, COUNT(*)
+FROM sales_data
+GROUP BY department, category
+
+-- With WHERE filter
+SELECT region, COUNT(*)
+FROM sales_data
+WHERE status = 'completed'
+GROUP BY region
+
+-- With ORDER BY (COUNT only)
+SELECT region, COUNT(*)
+FROM sales_data
+GROUP BY region
+ORDER BY COUNT(*) DESC
+LIMIT 10
+
+-- Invalid: ORDER BY SUM
+SELECT department, SUM(amount)
+FROM sales_data
+GROUP BY department
+ORDER BY SUM(amount) DESC
+```
+
+---
+
+## HAVING Clause
+
+### Syntax
+
+```sql
+SELECT column_list, COUNT(*)
+FROM table_name
+GROUP BY column_list
+HAVING COUNT(*) comparison_operator value
+```
+
+### Examples
+
+```sql
+-- Filter by count threshold
+SELECT department, COUNT(*)
+FROM sales_data
+GROUP BY department
+HAVING COUNT(*) > 1000
+
+-- Multiple conditions
+SELECT region, COUNT(*)
+FROM sales_data
+GROUP BY region
+HAVING COUNT(*) >= 100
+
+-- Invalid: HAVING with SUM
+SELECT department, SUM(amount)
+FROM sales_data
+GROUP BY department
+HAVING SUM(amount) > 1000000
 ```
 
 ---
@@ -202,6 +338,37 @@ WHERE session_id IS NOT NULL
   AND date_column >= '2024-01-01'
 ORDER BY timestamp
 LIMIT 500
+```
+
+### Aggregation Query
+
+```sql
+SELECT department, COUNT(*)
+FROM sales_data
+WHERE sale_date >= '2024-01-01'
+GROUP BY department
+ORDER BY COUNT(*) DESC
+LIMIT 10
+```
+
+### Aggregation with HAVING
+
+```sql
+SELECT region, COUNT(*)
+FROM sales_data
+WHERE status = 'completed'
+GROUP BY region
+HAVING COUNT(*) > 1000
+LIMIT 20
+```
+
+### Multiple Column Grouping
+
+```sql
+SELECT department, category, MIN(price), MAX(price)
+FROM products
+GROUP BY department, category
+LIMIT 100
 ```
 
 ---
