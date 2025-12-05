@@ -1,0 +1,344 @@
+---
+pcx_content_type: concept
+title: Deleting data
+description: How to properly delete data from R2 Data Catalog
+sidebar:
+  order: 5
+---
+
+import { FileTree } from "~/components"
+import { Tabs, TabItem } from "~/components"
+
+## Deleting data in R2 Data Catalog
+
+Deleting data from R2 Data Catalog or any Apache Iceberg catalog requires that operations are done in a transaction through the catalog itself. Manually deleting metadata or data files directly can lead to data catalog corruption.
+
+## About Apache Iceberg metadata
+
+Apache Iceberg uses a layered metadata structure to manage table data efficiently. Here are the key components and file structure:
+
+  - **metadata.json**: Top-level JSON file pointing to the current snapshot
+  - **snapshot-***: Immutable table state for a given point in time
+  - **manifest-list-*.avro**: An Avro file listing all manifest files for a given snapshot
+  - **manifest-file-*.avro**: An Avro file tracking data files and their statistics
+  - **data-*.parquet**: Parquet files containing actual table data
+  - **Note**: Unchanged manifest files are reused across snapshots
+
+:::caution
+Manually modifying or deleting any of these files directly can lead to data catalog corruption.
+:::
+
+<FileTree>
+  - metadata.json **Metadata File** - Points to current snapshot
+    - Table Schema
+    - Partition Spec
+    - Sort Order
+    - Snapshots
+      - snapshot-3051729675574597004.avro **Snapshot 1** (Historical)
+        - manifest-list-abc123.avro **Manifest List**
+          - manifest-file-001.avro **Manifest File**
+            - data-00001.parquet (10 MB, 50K rows)
+            - data-00002.parquet (12 MB, 60K rows)
+            - data-00003.parquet (11 MB, 55K rows)
+          - manifest-file-002.avro
+            - data-00004.parquet (9 MB, 45K rows)
+            - data-00005.parquet (10 MB, 50K rows)
+      - snapshot-3051729675574597005.avro **Snapshot 2** (Current)
+        - manifest-list-def456.avro **Manifest List**
+          - manifest-file-001.avro *(reused from Snapshot 1)*
+            - data-00001.parquet
+            - data-00002.parquet
+            - data-00003.parquet
+          - manifest-file-003.avro *(new)*
+            - data-00006.parquet (11 MB, 53K rows)
+            - data-00007.parquet (10 MB, 51K rows)
+            - data-00008.parquet (12 MB, 58K rows)
+</FileTree>
+
+### What happens during deletion
+
+<Tabs syncKey="deleteMode">
+<TabItem label="Copy-on-Write (COW)">
+
+When you delete data from a copy-on-write Iceberg table:
+
+1. **New snapshot is created** - Iceberg creates a new snapshot without the deleted data
+2. **Manifest files are updated** - New manifest files track which data files are still valid
+3. **Old files are marked** - Previous data files are marked for deletion but remain in R2
+4. **Cleanup is required** - Enable snapshot expiration in R2 Data Catalog or call the equivalent of `expire_snapshots` to physically remove old files from R2
+
+| Operation | What it does | Data deleted? | Reversible? |
+|-----------|-------------|---------------|-------------|
+| `DELETE FROM` | Removes rows matching condition | No (marked for cleanup) | Via time travel* |
+| `DROP TABLE` | Removes table from catalog | No | Yes (if data files exist) |
+| `DROP TABLE ... PURGE` | Removes table and deletes data | **Yes** | **No** |
+| `expire_snapshots` | Cleans up old snapshots/files | **Yes** | **No** |
+| `remove_orphan_files` | Removes unreferenced files | **Yes** | **No** |
+
+\* Time travel available until `expire_snapshots` is called
+
+**Best for:** Read-heavy workloads where query performance is critical
+</TabItem>
+<TabItem label="Merge-on-Read (MOR)">
+
+When you delete data from a merge-on-read Iceberg table:
+
+1. **New snapshot is created** - Iceberg creates a new snapshot tracking the deletion
+2. **Delete files are written** - Instead of rewriting data files, Iceberg creates **position delete files** or **equality delete files** depending on spec version that marks which rows to ignore
+3. **Original data files remain** - The original data files are NOT rewritten and stay unchanged in R2
+4. **Read-time merge required** - Query engines must merge data files with delete files at read time to filter out deleted rows
+5. **Compaction is strongly recommended** - Enable automatic [compaction](/r2/data-catalog/about-compaction)in R2 Data Catalog or run the equivalent of `rewrite_data_files` in your query engine to apply deletes and consolidate files for better query performance
+6. **Cleanup required** - Enable snapshot expiration in R2 Data Catalog or call the equivalent of `expire_snapshots` to physically remove old files from R2
+
+| Operation | What it does | Data deleted? | Reversible? | Notes |
+|-----------|-------------|---------------|-------------|-------|
+| `DELETE FROM` | Creates delete files | No | Via time travel* | Requires read-time merge when querying data |
+| `rewrite_data_files` | Applies deletes and rewrites data | Previous versions | Via time travel* | **Critical for MOR performance** |
+| `DROP TABLE` | Removes table from catalog | No | Yes (if data files exist) | Same as COW |
+| `DROP TABLE ... PURGE` | Removes table and deletes data | **Yes** | **No** | Same as COW |
+| `expire_snapshots` | Cleans up old snapshots/files | **Yes** | **No** | Same as COW |
+| `remove_orphan_files` | Removes unreferenced files | **Yes** | **No** | Same as COW |
+
+\* Time travel available until `expire_snapshots` is called
+**Best for:** Write-heavy workloads with frequent small deletes
+
+</TabItem>
+</Tabs>
+
+## Examples of properly deleting data from R2 Data Catalog
+
+:::note
+R2 Data Catalog can automate [maintenance operations](/r2/data-catalog/about-compaction) for you. The following are basic examples use PySpark but similar operations can be performed using other Iceberg-compatible engines.
+:::
+
+### Using PySpark
+
+Install PySpark:
+
+```bash
+pip install pyspark
+```
+
+The following are basic examples to demonstrate proper deletion operations using PySpark with R2 Data Catalog. Each tab shows a different category of operations.
+
+<Tabs>
+<TabItem label="DELETE operations">
+
+Delete operations mark files for cleanup but don't immediately remove them from R2 storage. Use maintenance operations to complete the cleanup.
+
+```py
+def deletion_examples(spark):
+    # Creates new snapshots and marks old files for cleanup
+    # See the maintenance operations tab for cleanup operations
+    spark.sql("""
+        DELETE FROM r2dc.namespace.table_name
+        WHERE column_name = 'value'
+    """)
+
+    # The following is effectively a TRUNCATE operation
+    spark.sql("DELETE FROM r2dc.namespace.table_name")
+```
+
+:::tip[Performance tip]
+For large deletes, use partitioned tables and delete entire partitions for faster performance:
+```py
+spark.sql("""
+    DELETE FROM r2dc.namespace.table_name
+    WHERE date_partition < '2024-01-01'
+""")
+```
+:::
+
+</TabItem>
+<TabItem label="DROP operations">
+
+```py
+def drop_examples(spark):
+    # Removes table from catalog but keeps data files in R2 storage
+    spark.sql("DROP TABLE r2dc.namespace.table_name")
+
+    # ⚠️  DANGER: Permanently deletes all data files from R2
+    # This operation cannot be undone
+    spark.sql("DROP TABLE r2dc.namespace.table_name PURGE")
+
+    # Use CASCADE to drop all tables within the namespace
+    spark.sql("DROP NAMESPACE r2dc.namespace_name CASCADE")
+
+    # You will need to PURGE the tables before running CASCADE to permanently delete data files
+    # This can be done with a loop over all tables in the namespace
+    tables = spark.sql("SHOW TABLES IN r2dc.namespace_name").collect()
+    for row in tables:
+        table_name = row['tableName']
+        spark.sql(f"DROP TABLE r2dc.namespace_name.{table_name} PURGE")
+    spark.sql("DROP NAMESPACE r2dc.namespace_name CASCADE")
+```
+
+:::caution[Data loss warning]
+`DROP TABLE ... PURGE` permanently deletes all data files from R2 storage. This operation cannot be undone and bypasses time-travel capabilities.
+:::
+
+</TabItem>
+<TabItem label="Maintenance operations">
+
+Maintenance operations physically remove files from R2 storage. These operations are necessary to reclaim storage space after deletions.
+
+```py
+def maintenance_examples(spark):
+    # Remove old metadata and data files marked for deletion
+    # The following retains the last 5 snapshots and deletes files older than Nov 28, 2024
+    spark.sql("""
+        CALL r2dc.system.expire_snapshots(
+            table => 'r2dc.namespace_name.table_name',
+            older_than => TIMESTAMP '2024-11-28 00:00:00',
+            retain_last => 5
+        )
+    """)
+
+    # Removes unreferenced data files from R2 storage (orphan files)
+    spark.sql("""
+        CALL r2dc.system.remove_orphan_files(
+            table => 'namespace.table_name'
+        )
+    """)
+
+    # Rewrite data files with a target file size (e.g., 512 MB)
+    spark.sql("""
+        CALL r2dc.system.rewrite_data_files(
+            table => 'r2dc.namespace_name.table_name',
+            options => map('target-file-size-bytes', '536870912')
+        )
+    """)
+```
+
+:::note
+R2 Data Catalog can [automatically run maintenance operations](/r2/data-catalog/about-compaction) for you. Manual maintenance is only needed for custom cleanup operations.
+:::
+
+</TabItem>
+<TabItem label="Spark Config">
+```py
+from pyspark.sql import SparkSession
+CATALOG_NAME = "r2dc"  # Catalog name to use
+WAREHOUSE = "your_account_id_warehouse_name"
+TOKEN = "your_r2dc_token_here"
+CATALOG_ENDPOINT = "https://catalog.cloudflarestorage.com/your_account_id/namespace"
+# Physically removing files requires S3-compatible access to R2
+R2_ACCESS_KEY_ID = "your_r2_access_key_id"
+R2_SECRET_ACCESS_KEY = "your_r2_secret_key"
+R2_ENDPOINT = "https://your_account_id.r2.cloudflarestorage.com/"
+
+# Choose the right package versions for your Spark version
+def get_spark_session(app_name="DeleteDropExamples"):
+    builder = SparkSession.builder \
+        .appName(app_name) \
+        .config('spark.jars.packages',
+            'org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.1,'
+            'org.apache.iceberg:iceberg-aws-bundle:1.6.1,'
+            'org.apache.hadoop:hadoop-aws:3.3.4,'
+            'com.amazonaws:aws-java-sdk-bundle:1.12.262'
+        ) \
+        .config("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}", "org.apache.iceberg.spark.SparkCatalog") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "rest") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.uri", CATALOG_ENDPOINT) \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.warehouse", WAREHOUSE) \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.token", TOKEN) \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.header.X-Iceberg-Access-Delegation", "vended-credentials") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.s3.remote-signing-enabled", "false") \
+        .config("spark.sql.defaultCatalog", CATALOG_NAME) \
+        .config("spark.hadoop.fs.s3a.access.key", R2_ACCESS_KEY_ID) \
+        .config("spark.hadoop.fs.s3a.secret.key", R2_SECRET_ACCESS_KEY) \
+        .config("spark.hadoop.fs.s3a.endpoint", R2_ENDPOINT) \
+        .config("spark.hadoop.fs.s3a.path.style.access", "true")
+
+    spark = builder.getOrCreate()
+    spark.sql(f"USE {CATALOG_NAME}")
+    return spark
+```
+
+</TabItem>
+<TabItem label="Complete Example">
+
+Full working example that sets up Spark, deletes data, and performs cleanup:
+
+```py
+from pyspark.sql import SparkSession
+
+# Configuration (same as Spark Config tab)
+CATALOG_NAME = "r2dc"
+WAREHOUSE = "your_account_id_warehouse_name"
+TOKEN = "your_r2dc_token_here"
+CATALOG_ENDPOINT = "https://catalog.cloudflarestorage.com/your_account_id/namespace"
+R2_ACCESS_KEY_ID = "your_r2_access_key_id"
+R2_SECRET_ACCESS_KEY = "your_r2_secret_key"
+R2_ENDPOINT = "https://your_account_id.r2.cloudflarestorage.com/"
+
+def get_spark_session(app_name="DeleteExample"):
+    builder = SparkSession.builder \
+        .appName(app_name) \
+        .config('spark.jars.packages',
+            'org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.1,'
+            'org.apache.iceberg:iceberg-aws-bundle:1.6.1,'
+            'org.apache.hadoop:hadoop-aws:3.3.4,'
+            'com.amazonaws:aws-java-sdk-bundle:1.12.262'
+        ) \
+        .config("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}", "org.apache.iceberg.spark.SparkCatalog") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "rest") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.uri", CATALOG_ENDPOINT) \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.warehouse", WAREHOUSE) \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.token", TOKEN) \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.header.X-Iceberg-Access-Delegation", "vended-credentials") \
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.s3.remote-signing-enabled", "false") \
+        .config("spark.sql.defaultCatalog", CATALOG_NAME) \
+        .config("spark.hadoop.fs.s3a.access.key", R2_ACCESS_KEY_ID) \
+        .config("spark.hadoop.fs.s3a.secret.key", R2_SECRET_ACCESS_KEY) \
+        .config("spark.hadoop.fs.s3a.endpoint", R2_ENDPOINT) \
+        .config("spark.hadoop.fs.s3a.path.style.access", "true")
+
+    spark = builder.getOrCreate()
+    spark.sql(f"USE {CATALOG_NAME}")
+    return spark
+
+if __name__ == "__main__":
+    # Initialize Spark session
+    spark = get_spark_session()
+
+    # Delete old records
+    print("Deleting old records...")
+    spark.sql("""
+        DELETE FROM r2dc.analytics.user_events
+        WHERE event_date < '2024-01-01'
+    """)
+
+    # Check current snapshots
+    print("Current snapshots:")
+    spark.sql("SELECT snapshot_id, committed_at FROM r2dc.analytics.user_events.snapshots").show()
+
+    # Clean up old snapshots (keeps last 5)
+    print("Expiring old snapshots...")
+    spark.sql("""
+        CALL r2dc.system.expire_snapshots(
+            table => 'r2dc.analytics.user_events',
+            older_than => TIMESTAMP '2024-11-01 00:00:00',
+            retain_last => 5
+        )
+    """)
+
+    print("Deletion and cleanup completed successfully")
+    spark.stop()
+```
+
+</TabItem>
+</Tabs>
+
+## Related resources
+
+- [About compaction](/r2/data-catalog/about-compaction) - Learn about automatic maintenance operations
+- [R2 Data Catalog](/r2/data-catalog/) - Overview and getting started guide
+- [Query data](/r2-sql/query-data) - Query tables with R2 SQL
+- [Apache Iceberg Maintenance](https://iceberg.apache.org/docs/latest/maintenance/) - Official Iceberg documentation on table maintenance
