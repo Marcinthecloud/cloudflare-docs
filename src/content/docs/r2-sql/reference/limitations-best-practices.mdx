@@ -85,18 +85,15 @@ SELECT 1 AS synthetic_column FROM my_table;
 
 ```sql
 -- Valid
-SELECT department, COUNT(*) FROM sales GROUP BY department
-SELECT region, AVG(amount) FROM sales GROUP BY region
-SELECT category, MIN(price), MAX(price) FROM products GROUP BY category
-SELECT SUM(quantity) FROM sales
-FROM sales
-GROUP BY department
-ORDER BY SUM(amount) DESC
+SELECT department, COUNT(*) FROM sales GROUP BY department;
+SELECT region, AVG(amount) FROM sales GROUP BY region;
+SELECT category, MIN(price), MAX(price) FROM products GROUP BY category;
+SELECT SUM(quantity) FROM sales GROUP BY department ORDER BY SUM(amount) DESC;
 
 -- Invalid
-SELECT COUNT(*) AS total FROM sales GROUP BY department -- No aliases
-SELECT COUNT(department) FROM sales -- Must use COUNT(*)
-SELECT COUNT(DISTINCT region) FROM sales -- No DISTINCT
+SELECT COUNT(*) AS total FROM sales GROUP BY department; -- No aliases
+SELECT COUNT(department) FROM sales; -- Must use COUNT(*)
+SELECT COUNT(DISTINCT region) FROM sales; -- No DISTINCT support
 ```
 
 ---
@@ -117,12 +114,12 @@ SELECT COUNT(DISTINCT region) FROM sales -- No DISTINCT
 ### Examples
 
 ```sql
-SELECT region, COUNT(*) FROM sales GROUP BY region
-SELECT dept, category, COUNT(*) FROM sales GROUP BY dept, category
-SELECT region, COUNT(*) FROM sales WHERE status = 'completed' GROUP BY region
-SELECT dept, COUNT(*) FROM sales GROUP BY dept ORDER BY COUNT(*) DESC LIMIT 10
-SELECT is_active, SUM(amount) FROM sales GROUP BY is_active
-SELECT dept, SUM(amount) FROM sales GROUP BY dept ORDER BY SUM(amount) DESC
+SELECT region, COUNT(*) FROM sales GROUP BY region;
+SELECT dept, category, COUNT(*) FROM sales GROUP BY dept, category;
+SELECT region, COUNT(*) FROM sales WHERE status = 'completed' GROUP BY region;
+SELECT dept, COUNT(*) FROM sales GROUP BY dept ORDER BY COUNT(*) DESC LIMIT 10;
+SELECT is_active, SUM(amount) FROM sales GROUP BY is_active;
+SELECT dept, SUM(amount) FROM sales GROUP BY dept ORDER BY SUM(amount) DESC;
 ```
 
 ---
@@ -132,15 +129,15 @@ SELECT dept, SUM(amount) FROM sales GROUP BY dept ORDER BY SUM(amount) DESC
 ### Supported Features
 
 - **With COUNT(*)**: Filter groups by count
-- **Comparison operators**: `>`, `>=`, `=`, `<`, `<=`, `!=`
+- **Comparison operators**: `>`, `>=`, `=`, `<`, `<=`, `!=`, `BETWEEN`, `AND`, `IS NOT NULL`
 - **With GROUP BY**: Must be used with GROUP BY
 
 ### Examples
 
 ```sql
-SELECT region, COUNT(*) FROM sales GROUP BY region HAVING COUNT(*) > 1000
-SELECT dept, SUM(amount) FROM sales GROUP BY dept HAVING SUM(amount) > 100000 -- HAVING with SUM
-SELECT region, COUNT(*) FROM sales GROUP BY region HAVING COUNT(*) > 100 AND COUNT(*) < 1000
+SELECT region, COUNT(*) FROM sales GROUP BY region HAVING COUNT(*) > 1000;
+SELECT dept, SUM(amount) FROM sales GROUP BY dept HAVING SUM(amount) > 100000; -- HAVING with SUM
+SELECT region, COUNT(*) FROM sales GROUP BY region HAVING COUNT(*) > 100 AND COUNT(*) < 1000;
 ```
 
 ---
@@ -167,12 +164,12 @@ SELECT region, COUNT(*) FROM sales GROUP BY region HAVING COUNT(*) > 100 AND COU
 
 ```sql
 --Valid
-SELECT * FROM http_requests
+SELECT * FROM http_requests;
 
 --Invalid
-SELECT * FROM table1, table2
-SELECT * FROM table1 JOIN table2 ON table1.id = table2.id
-SELECT * FROM (SELECT * FROM events WHERE status = 200)
+SELECT * FROM table1, table2;
+SELECT * FROM table1 JOIN table2 ON table1.id = table2.id;
+SELECT * FROM (SELECT * FROM events WHERE status = 200);
 ```
 
 ---
@@ -200,15 +197,15 @@ SELECT * FROM (SELECT * FROM events WHERE status = 200)
 
 ```sql
 --Valid
-SELECT * FROM events WHERE timestamp BETWEEN '2024-01-01' AND '2024-01-02'
-SELECT * FROM logs WHERE status = 200 AND user_type = 'premium'
-SELECT * FROM requests WHERE (method = 'GET' OR method = 'POST') AND response_time < 1000
+SELECT * FROM events WHERE timestamp BETWEEN '2024-01-01' AND '2024-01-02';
+SELECT * FROM logs WHERE status = 200 AND user_type = 'premium';
+SELECT * FROM requests WHERE (method = 'GET' OR method = 'POST') AND response_time < 1000;
 
 --Invalid
-SELECT * FROM logs WHERE tags[0] = 'error' -- Array filtering
-SELECT * FROM requests WHERE metadata.user_id = '123' -- JSON field filtering
-SELECT * FROM events WHERE col_a = col_b -- Column comparison
-SELECT * FROM logs WHERE response_time + latency > 5000 -- Arithmetic
+SELECT * FROM logs WHERE tags[0] = 'error'; -- Array filtering
+SELECT * FROM requests WHERE metadata.user_id = '123'; -- JSON field filtering
+SELECT * FROM events WHERE col_a = col_b; -- Column comparison
+SELECT * FROM logs WHERE response_time + latency > 5000; -- Arithmetic
 ```
 
 ---
@@ -220,7 +217,7 @@ SELECT * FROM logs WHERE response_time + latency > 5000 -- Arithmetic
 - **ASC**: Ascending order
 - **DESC**: Descending order (Default, on full partition key)
 - **With partition key**: Order by partition key columns
-- **With COUNT(*)**: Order by COUNT(*) when using GROUP BY
+- **With GROUP BY**: Can order by all aggregation columns
 
 ### Limitations
 
@@ -230,12 +227,12 @@ SELECT * FROM logs WHERE response_time + latency > 5000 -- Arithmetic
 
 ```sql
 -- Valid
-SELECT * FROM table_name WHERE ... ORDER BY partitionKey
-SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC
-SELECT dept, COUNT(*) FROM table_name GROUP BY dept ORDER BY COUNT(*) DESC
+SELECT * FROM table_name WHERE ... ORDER BY partitionKey;
+SELECT * FROM table_name WHERE ... ORDER BY partitionKey DESC;
+SELECT dept, COUNT(*) FROM table_name GROUP BY dept ORDER BY COUNT(*) DESC;
 
 -- Invalid
-SELECT * FROM table_name GROUP BY dept ORDER BY nonPartitionKey DESC --ORDER BY on non-partition key
+SELECT * FROM table_name GROUP BY dept ORDER BY nonPartitionKey DESC --ORDER BY a non-grouped column
 ```
 
 ---
@@ -261,9 +258,9 @@ SELECT * FROM events LIMIT 100
 SELECT * FROM logs WHERE ... LIMIT 10000
 
 -- Invalid
-SELECT * FROM events LIMIT 100, 50 -- Pagination
-SELECT * FROM logs LIMIT COUNT(*) / 2 -- Functions
-SELECT * FROM events LIMIT 10 * 10 -- Arithmetic
+SELECT * FROM events LIMIT 100, 50; -- Pagination
+SELECT * FROM logs LIMIT COUNT(*); / 2 -- Functions
+SELECT * FROM events LIMIT 10 * 10; -- Arithmetic
 ```
 
 ---
@@ -277,9 +274,6 @@ The following SQL clauses are **not supported**:
 - `WINDOW` functions
 - `INSERT`/`UPDATE`/`DELETE`
 - `CREATE`/`ALTER`/`DROP`
-
-Note: `GROUP BY` and `HAVING` are partially supported with significant limitations (see sections above).
-
 ---
 
 ## Best Practices
