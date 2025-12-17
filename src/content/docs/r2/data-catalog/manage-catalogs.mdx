@@ -163,7 +163,7 @@ npx wrangler r2 bucket catalog compaction disable <BUCKET_NAME> <NAMESPACE> <TAB
 
 ## Enable snapshot expiration
 
-Snapshot expiration automatically removes old table snapshots to reduce metadata bloat and storage costs. For more information about snapshot expiration and why it's valuable, refer to [Table maintenance](/r2/data-catalog/table-maintenance/).
+Snapshot expiration automatically removes old table snapshots to reduce metadata bloat and storage costs. For more information about snapshot expiration and why it is valuable, refer to [Table maintenance](/r2/data-catalog/table-maintenance/).
 
 To enable snapshot expiration on your catalog, run the [`r2 bucket catalog snapshot-expiration enable` command](/workers/wrangler/commands/#r2-bucket-catalog-snapshot-expiration-enable):
 
@@ -188,7 +188,7 @@ Refer to [Authenticate your Iceberg engine](#authenticate-your-iceberg-engine) f
 
 ## Disable snapshot expiration
 
-Disabling snapshot expiration will prevent the process from running for all tables (catalog level) or a specific table (table level). You can re-enable it at any time.
+Disabling snapshot expiration prevents the process from running for all tables (catalog level) or a specific table (table level). You can re-enable snapshot expiration at any time.
 
 ```bash
 # Disable catalog-level snapshot expiration (all tables)
