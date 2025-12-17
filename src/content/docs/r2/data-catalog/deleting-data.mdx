@@ -58,58 +58,49 @@ Manually modifying or deleting any of these files directly can lead to data cata
 
 ### What happens during deletion
 
-<Tabs syncKey="deleteMode">
-<TabItem label="Copy-on-Write (COW)">
+Apache Iceberg supports two deletion modes: **Copy-on-Write (COW)** and **Merge-on-Read (MOR)**. Both create a new snapshot and mark old files for cleanup, but handle the deletion differently:
 
-When you delete data from a copy-on-write Iceberg table:
+| Aspect | Copy-on-Write (COW) | Merge-on-Read (MOR) |
+|--------|---------------------|---------------------|
+| **How deletes work** | Rewrites data files without deleted rows | Creates delete files marking rows to skip |
+| **Query performance** | Fast (no merge needed) | Slower (requires read-time merge) |
+| **Write performance** | Slower (rewrites data files) | Fast (only writes delete markers) |
+| **Storage impact** | Creates new data files immediately | Accumulates delete files over time |
+| **Maintenance needs** | Snapshot expiration | Snapshot expiration + compaction (`rewrite_data_files`) |
+| **Best for** | Read-heavy workloads | Write-heavy workloads with frequent small mutations |
 
-1. **New snapshot is created** - Iceberg creates a new snapshot without the deleted data
-2. **Manifest files are updated** - New manifest files track which data files are still valid
-3. **Old files are marked** - Previous data files are marked for deletion but remain in R2
-4. **Cleanup is required** - Enable snapshot expiration in R2 Data Catalog or call the equivalent of `expire_snapshots` to physically remove old files from R2
+:::note[Important for all deletion modes]
+- Deleted data is **not immediately removed** from R2 - files are marked for cleanup
+- Enable [snapshot expiration](/r2/data-catalog/table-maintenance) in R2 Data Catalog to automatically clean up old snapshots and files
+:::
+
+### Common deletion operations
+
+These operations work the same way for both COW and MOR tables:
 
 | Operation | What it does | Data deleted? | Reversible? |
 |-----------|-------------|---------------|-------------|
-| `DELETE FROM` | Removes rows matching condition | No (marked for cleanup) | Via time travel* |
+| `DELETE FROM` | Removes rows matching condition | No (marked for cleanup) | Via time travel[^1] |
 | `DROP TABLE` | Removes table from catalog | No | Yes (if data files exist) |
 | `DROP TABLE ... PURGE` | Removes table and deletes data | **Yes** | **No** |
-| `expire_snapshots`[^1] | Cleans up old snapshots/files | **Yes** | **No** |
+| `expire_snapshots` | Cleans up old snapshots/files | **Yes** | **No** |
 | `remove_orphan_files` | Removes unreferenced files | **Yes** | **No** |
 
-**Best for:** Read-heavy workloads where query performance is critical
+### MOR-specific operations
 
-</TabItem>
-<TabItem label="Merge-on-Read (MOR)">
+For Merge-on-Read tables, you may need to manually apply deletes for performance:
 
-When you delete data from a merge-on-read Iceberg table:
+| Operation | What it does | When to use |
+|-----------|-------------|-------------|
+| `rewrite_data_files` (compaction)| Applies deletes and consolidates files | When query performance degrades due to many delete files |
 
-1. **New snapshot is created** - Iceberg creates a new snapshot tracking the deletion
-2. **Delete files are written** - Instead of rewriting data files, Iceberg creates **position delete files** or **equality delete files** depending on spec version that marks which rows to ignore
-3. **Original data files remain** - The original data files are NOT rewritten and stay unchanged in R2
-4. **Read-time merge required** - Query engines must merge data files with delete files at read time to filter out deleted rows
-5. **Compaction is strongly recommended** - Enable automatic [compaction](/r2/data-catalog/table-maintenance) in R2 Data Catalog or run the equivalent of `rewrite_data_files` in your query engine to apply deletes and consolidate files for better query performance
-6. **Cleanup required** - Enable snapshot expiration in R2 Data Catalog or call the equivalent of `expire_snapshots` to physically remove old files from R2
-
-| Operation | What it does | Data deleted? | Reversible? | Notes |
-|-----------|-------------|---------------|-------------|-------|
-| `DELETE FROM` | Creates delete files | No | Via time travel* | Requires read-time merge when querying data |
-| `rewrite_data_files` | Applies deletes and rewrites data | Previous versions | Via time travel* | **Critical for MOR performance** |
-| `DROP TABLE` | Removes table from catalog | No | Yes (if data files exist) | Same as COW |
-| `DROP TABLE ... PURGE` | Removes table and deletes data | **Yes** | **No** | Same as COW |
-| `expire_snapshots`[^1] | Cleans up old snapshots/files | **Yes** | **No** | Same as COW |
-| `remove_orphan_files` | Removes unreferenced files | **Yes** | **No** | Same as COW |
-
-
-**Best for:** Write-heavy workloads with frequent small mutations such as ingesting data from [Pipelines](/pipelines/overview)
-
-</TabItem>
-</Tabs>
+:::note
+R2 Data Catalog can automate [rewriting data files](/r2/data-catalog/table-maintenance) for you.
+:::
 
 ## Examples of properly deleting data from R2 Data Catalog
 
-:::note
-R2 Data Catalog can automate [maintenance operations](/r2/data-catalog/table-maintenance) for you. The following are basic examples using PySpark but similar operations can be performed using other Iceberg-compatible engines.
-:::
+The following are basic examples using PySpark but similar operations can be performed using other Iceberg-compatible engines.
 
 ### Using PySpark
 
