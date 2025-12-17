@@ -8,6 +8,7 @@ sidebar:
 
 import { FileTree } from "~/components"
 import { Tabs, TabItem } from "~/components"
+import { InlineBadge } from "~/components";
 
 ## Deleting data in R2 Data Catalog
 
@@ -72,12 +73,11 @@ When you delete data from a copy-on-write Iceberg table:
 | `DELETE FROM` | Removes rows matching condition | No (marked for cleanup) | Via time travel* |
 | `DROP TABLE` | Removes table from catalog | No | Yes (if data files exist) |
 | `DROP TABLE ... PURGE` | Removes table and deletes data | **Yes** | **No** |
-| `expire_snapshots` | Cleans up old snapshots/files | **Yes** | **No** |
+| `expire_snapshots`[^1] | Cleans up old snapshots/files | **Yes** | **No** |
 | `remove_orphan_files` | Removes unreferenced files | **Yes** | **No** |
 
-\* Time travel available until `expire_snapshots` is called
-
 **Best for:** Read-heavy workloads where query performance is critical
+
 </TabItem>
 <TabItem label="Merge-on-Read (MOR)">
 
@@ -87,7 +87,7 @@ When you delete data from a merge-on-read Iceberg table:
 2. **Delete files are written** - Instead of rewriting data files, Iceberg creates **position delete files** or **equality delete files** depending on spec version that marks which rows to ignore
 3. **Original data files remain** - The original data files are NOT rewritten and stay unchanged in R2
 4. **Read-time merge required** - Query engines must merge data files with delete files at read time to filter out deleted rows
-5. **Compaction is strongly recommended** - Enable automatic [compaction](/r2/data-catalog/about-compaction)in R2 Data Catalog or run the equivalent of `rewrite_data_files` in your query engine to apply deletes and consolidate files for better query performance
+5. **Compaction is strongly recommended** - Enable automatic [compaction](/r2/data-catalog/table-maintenance) in R2 Data Catalog or run the equivalent of `rewrite_data_files` in your query engine to apply deletes and consolidate files for better query performance
 6. **Cleanup required** - Enable snapshot expiration in R2 Data Catalog or call the equivalent of `expire_snapshots` to physically remove old files from R2
 
 | Operation | What it does | Data deleted? | Reversible? | Notes |
@@ -96,11 +96,11 @@ When you delete data from a merge-on-read Iceberg table:
 | `rewrite_data_files` | Applies deletes and rewrites data | Previous versions | Via time travel* | **Critical for MOR performance** |
 | `DROP TABLE` | Removes table from catalog | No | Yes (if data files exist) | Same as COW |
 | `DROP TABLE ... PURGE` | Removes table and deletes data | **Yes** | **No** | Same as COW |
-| `expire_snapshots` | Cleans up old snapshots/files | **Yes** | **No** | Same as COW |
+| `expire_snapshots`[^1] | Cleans up old snapshots/files | **Yes** | **No** | Same as COW |
 | `remove_orphan_files` | Removes unreferenced files | **Yes** | **No** | Same as COW |
 
-\* Time travel available until `expire_snapshots` is called
-**Best for:** Write-heavy workloads with frequent small deletes
+
+**Best for:** Write-heavy workloads with frequent small deletes such as ingesting data from [Pipelines](/pipelines/overview)
 
 </TabItem>
 </Tabs>
@@ -108,7 +108,7 @@ When you delete data from a merge-on-read Iceberg table:
 ## Examples of properly deleting data from R2 Data Catalog
 
 :::note
-R2 Data Catalog can automate [maintenance operations](/r2/data-catalog/about-compaction) for you. The following are basic examples using PySpark but similar operations can be performed using other Iceberg-compatible engines.
+R2 Data Catalog can automate [maintenance operations](/r2/data-catalog/table-maintenance) for you. The following are basic examples using PySpark but similar operations can be performed using other Iceberg-compatible engines.
 :::
 
 ### Using PySpark
@@ -211,7 +211,7 @@ def maintenance_examples(spark):
 ```
 
 :::note
-R2 Data Catalog can [automatically run maintenance operations](/r2/data-catalog/about-compaction) for you. Manual maintenance is only needed for custom cleanup operations.
+R2 Data Catalog can [automatically run maintenance operations](/r2/data-catalog/table-maintenance) for you. Manual maintenance is only needed for custom cleanup operations.
 :::
 
 </TabItem>
@@ -338,7 +338,10 @@ if __name__ == "__main__":
 
 ## Related resources
 
-- [About compaction](/r2/data-catalog/about-compaction) - Learn about automatic maintenance operations
+- [Table maintenance](/r2/data-catalog/table-maintenance) - Learn about automatic maintenance operations
 - [R2 Data Catalog](/r2/data-catalog/) - Overview and getting started guide
 - [Query data](/r2-sql/query-data) - Query tables with R2 SQL
 - [Apache Iceberg Maintenance](https://iceberg.apache.org/docs/latest/maintenance/) - Official Iceberg documentation on table maintenance
+
+[^1]: Time travel available until `expire_snapshots` is called
+
